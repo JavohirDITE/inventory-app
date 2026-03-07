@@ -32,15 +32,39 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        context.Database.Migrate();
+        
+        logger.LogInformation("Attempting to connect to the database...");
+        bool canConnect = context.Database.CanConnect();
+        
+        if (canConnect)
+        {
+            logger.LogInformation("Successfully connected to the database.");
+            
+            logger.LogInformation("Checking for pending migrations...");
+            var pendingMigrations = context.Database.GetPendingMigrations();
+            if (pendingMigrations.Any())
+            {
+                logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
+                context.Database.Migrate();
+                logger.LogInformation("Migrations applied successfully.");
+            }
+            else
+            {
+                logger.LogInformation("No pending migrations. Database is up to date.");
+            }
+        }
+        else
+        {
+            logger.LogWarning("Could not connect to the database. Migrations will not be applied.");
+        }
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
+        logger.LogError(ex, "An error occurred while connecting or migrating the database.");
     }
 }
 
