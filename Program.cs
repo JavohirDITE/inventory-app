@@ -56,6 +56,8 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 builder.Services.AddControllersWithViews()
     .AddViewLocalization(LanguageViewLocationExpanderFormat.Suffix);
 
+builder.Services.AddSignalR();
+
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
     var supportedCultures = new[] { new CultureInfo("en"), new CultureInfo("ru") };
@@ -128,5 +130,6 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.MapRazorPages();
+app.MapHub<InventoryApp.Hubs.DiscussionHub>("/discussionHub");
 
 app.Run();

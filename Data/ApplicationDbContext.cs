@@ -19,6 +19,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<InventoryAccess> InventoryAccesses { get; set; }
     public DbSet<Item> Items { get; set; }
     public DbSet<CustomIdPart> CustomIdParts { get; set; }
+    public DbSet<Comment> Comments { get; set; }
+    public DbSet<Like> Likes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -42,6 +44,11 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         builder.Entity<Item>()
             .Property(i => i.Version)
             .IsConcurrencyToken();
+
+        // Likes Logic
+        builder.Entity<Like>()
+            .HasIndex(l => new { l.ItemId, l.UserId })
+            .IsUnique();
 
         // Composite Keys
         builder.Entity<InventoryTag>()

@@ -110,6 +110,7 @@
                       <th>ID</th>
                       <th>@Localizer["Item Data"]</th>
                       <th>@Localizer["Created"]</th>
+                      <th style="width: 80px;" class="text-center"><i class="bi bi-heart-fill text-danger"></i></th>
                   </tr>
               </thead>
               <tbody>
@@ -135,6 +136,11 @@
                                   }
                               </td>
                               <td>@item.CreatedAt.ToString("MMM dd, yyyy")</td>
+                              <td class="text-center">
+                                  <button class="btn btn-sm btn-outline-danger border-0 like-btn" data-item-id="@item.Id" title="@Localizer["Like"]">
+                                      <i class="bi bi-heart heart-icon"></i> <span class="like-count">...</span>
+                                  </button>
+                              </td>
                           </tr>
                       }
                   }
@@ -156,29 +162,32 @@
        2. DISCUSSION TAB 
        =============================== -->
   <div class="tab-pane fade @(Model.ActiveTab == "discussion" ? "show active" : "")" id="discussion" role="tabpanel" aria-labelledby="discussion-tab">
-      @if (Model.HasWriteAccess)
+      
+      <!-- Comments Container -->
+      <div id="commentsContainer" class="mb-4" style="max-height: 500px; overflow-y: auto;">
+          <div class="text-center text-muted" id="commentsLoading">
+              <div class="spinner-border spinner-border-sm" role="status"></div> Loading discussion...
+          </div>
+      </div>
+
+      @if (User.Identity?.IsAuthenticated == true)
       {
-          <form class="mb-4">
-              <div class="mb-3">
-                  <label class="form-label">@Localizer["Add a comment"]</label>
-                  <textarea class="form-control" rows="3" placeholder="@Localizer["Write something..."]"></textarea>
+          <form id="commentForm" class="mt-3 border-top pt-3">
+              <div class="mb-2">
+                  <label class="form-label fw-bold">@Localizer["Leave a comment (Markdown supported)"]</label>
+                  <textarea id="commentContent" class="form-control" rows="3" placeholder="@Localizer["Write something nice..."]" required></textarea>
               </div>
-              <button type="button" class="btn btn-primary">@Localizer["Post Comment"]</button>
+              <button type="submit" class="btn btn-primary" id="postCommentBtn">
+                  <i class="bi bi-send"></i> @Localizer["Post Comment"]
+              </button>
           </form>
       }
       else
       {
-          <div class="alert alert-secondary">
-              <i class="bi bi-info-circle"></i> @Localizer["You do not have permission to post comments. Reading mode only."]
+          <div class="alert alert-secondary mt-3">
+              <i class="bi bi-info-circle"></i> @Localizer["Please log in to participate in the discussion."]
           </div>
       }
-
-      <div class="card border-0 bg-light">
-          <div class="card-body text-center text-muted py-5">
-              <i class="bi bi-chat-square-text fs-1 mb-3 d-block"></i>
-              @Localizer["Discussion system will be fully implemented in Phase 7."]
-          </div>
-      </div>
   </div>
 
   @if (Model.IsOwnerOrAdmin)
@@ -445,11 +454,16 @@
     <a asp-action="Index" class="btn btn-link text-decoration-none"><i class="bi bi-arrow-left"></i> @Localizer["Back to List"]</a>
 </div>
 
-@if (Model.HasWriteAccess)
-{
 @section Scripts {
+    <!-- SignalR, Marked.js, DOMPurify for Phase 7 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            
+            // --- 1. Items Checkbox & Toolbar Logic ---
             const selectAllCheckbox = document.getElementById("selectAllItems");
             const itemCheckboxes = document.querySelectorAll(".item-checkbox");
             const editBtn = document.getElementById("toolbarEditBtn");
@@ -459,81 +473,199 @@
                 const checkedCheckboxes = document.querySelectorAll(".item-checkbox:checked");
                 const count = checkedCheckboxes.length;
                 
-                if (count === 1) {
-                    editBtn.disabled = false;
-                    const itemId = checkedCheckboxes[0].value;
-                    editBtn.onclick = function() {
-                        window.location.href = '/Items/Edit/' + itemId;
-                    };
-                } else {
-                    editBtn.disabled = true;
-                    editBtn.onclick = null;
+                if (editBtn) {
+                    if (count === 1) {
+                        editBtn.disabled = false;
+                        const itemId = checkedCheckboxes[0].value;
+                        editBtn.onclick = function() {
+                            window.location.href = '/Items/Edit/' + itemId;
+                        };
+                    } else {
+                        editBtn.disabled = true;
+                        editBtn.onclick = null;
+                    }
                 }
 
-                if (count > 0) {
-                    deleteBtn.disabled = false;
-                } else {
-                    deleteBtn.disabled = true;
+                if (deleteBtn) {
+                    deleteBtn.disabled = count === 0;
                 }
             }
 
             if (selectAllCheckbox) {
                 selectAllCheckbox.addEventListener("change", function () {
-                    itemCheckboxes.forEach(cb => {
-                        cb.checked = selectAllCheckbox.checked;
-                    });
+                    itemCheckboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
                     updateToolbar();
                 });
             }
 
             itemCheckboxes.forEach(cb => {
                 cb.addEventListener("change", function () {
-                    if (!this.checked && selectAllCheckbox) {
-                        selectAllCheckbox.checked = false;
-                    }
+                    if (!this.checked && selectAllCheckbox) selectAllCheckbox.checked = false;
                     updateToolbar();
                 });
             });
 
-            // Live Preview logic for Custom ID Tab
+            // --- 2. Live Preview logic for Custom ID Tab ---
             const previewEl = document.getElementById("customIdPreview");
-            const updatePreview = () => {
-                let previewStr = "";
-                for(let i=0; i<5; i++) {
-                    const typeSelect = document.querySelector(`select[name='parts[${i}].PartType']`);
-                    if(!typeSelect || !typeSelect.value) continue;
-                    
-                    const textVal = document.querySelector(`input[name='parts[${i}].TextValue']`).value || "";
-                    const dateFmt = document.querySelector(`input[name='parts[${i}].DateFormat']`).value || "yyyyMMdd";
-                    const padVal = parseInt(document.querySelector(`input[name='parts[${i}].Padding']`).value || "1");
+            if (previewEl) {
+                const updatePreview = () => {
+                    let previewStr = "";
+                    for(let i=0; i<5; i++) {
+                        const typeSelect = document.querySelector(`select[name='parts[${i}].PartType']`);
+                        if(!typeSelect || !typeSelect.value) continue;
+                        
+                        const textVal = document.querySelector(`input[name='parts[${i}].TextValue']`).value || "";
+                        const dateFmt = document.querySelector(`input[name='parts[${i}].DateFormat']`).value || "yyyyMMdd";
+                        const padVal = parseInt(document.querySelector(`input[name='parts[${i}].Padding']`).value || "1");
 
-                    switch(typeSelect.value) {
-                        case "FixedText": previewStr += textVal; break;
-                        case "RandomHex20": previewStr += "A1B2C"; break;
-                        case "RandomHex32": previewStr += "A1B2C3D4"; break;
-                        case "RandomDigits6": previewStr += "123456"; break;
-                        case "RandomDigits9": previewStr += "123456789"; break;
-                        case "Sequence": previewStr += "1".padStart(Math.max(1, padVal), '0'); break;
-                        case "Guid": previewStr += "1234567890ABCDEF1234567890ABCDEF"; break;
-                        case "DateTime": 
-                            // simplistic mock
-                            const d = new Date();
-                            if(dateFmt.includes('yyyy')) previewStr += d.getFullYear();
-                            else if (dateFmt.includes('yy')) previewStr += d.getFullYear().toString().slice(-2);
-                            else previewStr += "DATE";
-                            break;
+                        switch(typeSelect.value) {
+                            case "FixedText": previewStr += textVal; break;
+                            case "RandomHex20": previewStr += "A1B2C"; break;
+                            case "RandomHex32": previewStr += "A1B2C3D4"; break;
+                            case "RandomDigits6": previewStr += "123456"; break;
+                            case "RandomDigits9": previewStr += "123456789"; break;
+                            case "Sequence": previewStr += "1".padStart(Math.max(1, padVal), '0'); break;
+                            case "Guid": previewStr += "1234567890ABCDEF1234567890ABCDEF"; break;
+                            case "DateTime": 
+                                const d = new Date();
+                                if(dateFmt.includes('yyyy')) previewStr += d.getFullYear();
+                                else if (dateFmt.includes('yy')) previewStr += d.getFullYear().toString().slice(-2);
+                                else previewStr += "DATE";
+                                break;
+                        }
                     }
-                }
-                previewEl.innerText = previewStr || "GUID (Fallback)";
-            };
+                    previewEl.innerText = previewStr || "GUID (Fallback)";
+                };
 
-            const idInputs = document.querySelectorAll("#customid select, #customid input");
-            idInputs.forEach(input => {
-                input.addEventListener('change', updatePreview);
-                input.addEventListener('keyup', updatePreview);
+                const idInputs = document.querySelectorAll("#customid select, #customid input");
+                idInputs.forEach(input => {
+                    input.addEventListener('change', updatePreview);
+                    input.addEventListener('keyup', updatePreview);
+                });
+                updatePreview();
+            }
+
+            // --- 3. Item Likes ---
+            const likeBtns = document.querySelectorAll(".like-btn");
+            likeBtns.forEach(btn => {
+                const itemId = btn.getAttribute("data-item-id");
+                
+                // Load initial count
+                fetch(`/api/likes/count/${itemId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        btn.querySelector(".like-count").innerText = data.count || "0";
+                        if (data.liked) {
+                            btn.classList.remove("btn-outline-danger");
+                            btn.classList.add("btn-danger");
+                            btn.querySelector(".heart-icon").classList.replace("bi-heart", "bi-heart-fill");
+                        }
+                    });
+
+                // Check auth before toggling logic
+                btn.addEventListener("click", function() {
+                    fetch(`/api/likes/toggle/${itemId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    }).then(r => {
+                        if(r.status === 401) { alert("Please log in to like items."); return; }
+                        return r.json();
+                    }).then(data => {
+                        if(!data) return;
+                        btn.querySelector(".like-count").innerText = data.count;
+                        if(data.liked) {
+                            btn.classList.remove("btn-outline-danger");
+                            btn.classList.add("btn-danger");
+                            btn.querySelector(".heart-icon").classList.replace("bi-heart", "bi-heart-fill");
+                        } else {
+                            btn.classList.remove("btn-danger");
+                            btn.classList.add("btn-outline-danger");
+                            btn.querySelector(".heart-icon").classList.replace("bi-heart-fill", "bi-heart");
+                        }
+                    }).catch(err => console.error("Error toggling like", err));
+                });
             });
-            updatePreview(); // Initial call
+
+            // --- 4. Realtime Discussion (SignalR) ---
+            const inventoryId = @Model.Inventory.Id;
+            const commentsContainer = document.getElementById("commentsContainer");
+            const commentForm = document.getElementById("commentForm");
+            const commentContent = document.getElementById("commentContent");
+            const loadingIndicator = document.getElementById("commentsLoading");
+
+            // Define safe markdown render method
+            function renderComment(comment) {
+                const safeHtml = DOMPurify.sanitize(marked.parse(comment.content));
+                const dateStr = new Date(comment.createdAt).toLocaleString();
+                
+                const div = document.createElement("div");
+                div.className = "card mb-3 shadow-sm border-0";
+                div.innerHTML = `
+                    <div class="card-header bg-transparent py-2 px-3 border-0">
+                        <small class="text-muted"><i class="bi bi-person"></i> <strong>${comment.userName}</strong> &bull; ${dateStr}</small>
+                    </div>
+                    <div class="card-body py-2 px-3">
+                        ${safeHtml}
+                    </div>
+                `;
+                return div;
+            }
+
+            // Load existing comments
+            fetch(`/api/comments/${inventoryId}`)
+                .then(r => r.json())
+                .then(comments => {
+                    if (loadingIndicator) loadingIndicator.remove();
+                    if (comments.length === 0) {
+                        commentsContainer.innerHTML = `<div class="text-muted text-center py-4" id="emptyComments"><i class="bi bi-chat-dots fs-1 d-block mb-3"></i> No comments yet. Be the first to start the discussion!</div>`;
+                    } else {
+                        comments.forEach(c => commentsContainer.appendChild(renderComment(c)));
+                    }
+                    commentsContainer.scrollTop = commentsContainer.scrollHeight;
+                });
+
+            // SignalR Connection
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/discussionHub")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("ReceiveComment", function (comment) {
+                const empty = document.getElementById("emptyComments");
+                if (empty) empty.remove();
+                
+                commentsContainer.appendChild(renderComment(comment));
+                commentsContainer.scrollTop = commentsContainer.scrollHeight;
+            });
+
+            connection.start().then(function () {
+                connection.invoke("JoinGroup", inventoryId.toString()).catch(err => console.error(err));
+            }).catch(function (err) {
+                console.error("SignalR Connection Error: ", err.toString());
+            });
+
+            // Post new comment
+            if (commentForm) {
+                commentForm.addEventListener("submit", function(e) {
+                    e.preventDefault();
+                    const text = commentContent.value;
+                    if(!text) return;
+
+                    fetch(`/api/comments`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ inventoryId: inventoryId, content: text })
+                    }).then(r => {
+                        if(r.ok) {
+                            commentContent.value = "";
+                        } else if(r.status === 401) {
+                            alert("Please log in to comment.");
+                        } else {
+                            alert("Failed to post comment.");
+                        }
+                    });
+                });
+            }
         });
     </script>
-}
 }
