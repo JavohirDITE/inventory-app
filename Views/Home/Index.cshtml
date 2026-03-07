@@ -2,21 +2,69 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center mt-5">
-    <h1 class="display-4 fw-bold">Hello World!</h1>
-    <p class="lead">Welcome to the Inventory Management App</p>
+@model IEnumerable<InventoryApp.Models.Inventory>
+@{
+    ViewData["Title"] = "Home Page";
+}
 
-    <div class="mt-4">
-        @if (ViewBag.DbConnected == true)
+<div class="row mt-5">
+    <div class="col-md-8">
+        <h2 class="mb-4 fw-bold">@Localizer["Recent Inventories"]</h2>
+        
+        @if (Model != null && Model.Any())
         {
-            <div class="alert alert-success" role="alert">
-                <i class="bi bi-check-circle-fill"></i> Successfully connected to PostgreSQL Database!
+            <div class="list-group shadow-sm">
+                @foreach(var item in Model)
+                {
+                    <a asp-controller="Inventories" asp-action="Details" asp-route-id="@item.Id" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">@item.Title</h5>
+                            <small class="text-muted">@item.Category?.Name by @item.Creator?.UserName</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">View</span>
+                    </a>
+                }
             </div>
         }
         else
         {
-            <div class="alert alert-danger" role="alert">
-                <i class="bi bi-exclamation-triangle-fill"></i> Failed to connect to the database. Check the configuration.
+            <p class="text-muted">@Localizer["No inventories found."]</p>
+        }
+        
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+             <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="bi bi-star-fill text-warning"></i> @Localizer["Popular Inventories"]</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">@Localizer["(Likes system will be implemented in Phase 7)"]</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+             <div class="card-header bg-secondary text-white">
+                <h5 class="card-title mb-0"><i class="bi bi-tags"></i> @Localizer["Tag Cloud"]</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">@Localizer["(Tag cloud will be populated in Phase 4/6)"]</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12 text-center">
+        @if (ViewBag.DbConnected == true)
+        {
+            <div class="text-success small">
+                <i class="bi bi-check-circle-fill"></i> Database connected
+            </div>
+        }
+        else
+        {
+            <div class="text-danger small">
+                <i class="bi bi-exclamation-triangle-fill"></i> Database error
             </div>
         }
     </div>

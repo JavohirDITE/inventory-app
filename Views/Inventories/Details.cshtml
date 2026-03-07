@@ -1,0 +1,87 @@
+@model InventoryApp.Models.Inventory
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    ViewData["Title"] = Model.Title;
+    var currentUserId = UserManager.GetUserId(User);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 mt-3">
+    <h2>@Model.Title 
+       <span class="badge bg-secondary fs-6 align-middle">@Model.Category?.Name</span>
+       @if (Model.IsPublic) { <span class="badge bg-success fs-6 align-middle"><i class="bi bi-unlock"></i> Public Write</span> }
+    </h2>
+    
+    @if (Model.CreatorId == currentUserId || User.IsInRole("Admin"))
+    {
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">@Localizer["Edit"]</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">@Localizer["Delete"]</a>
+        </div>
+    }
+</div>
+
+<p class="text-muted mb-4">
+    <i class="bi bi-person"></i> @Localizer["Created by"]: @Model.Creator?.UserName
+</p>
+
+@if (!string.IsNullOrEmpty(Model.ImageUrl))
+{
+    <div class="mb-4 text-center">
+        <img src="@Model.ImageUrl" alt="@Model.Title" class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: cover;" />
+    </div>
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title text-primary"><i class="bi bi-info-circle"></i> @Localizer["Description"]</h5>
+        <p class="card-text" style="white-space: pre-wrap;">@Model.Description</p>
+    </div>
+</div>
+
+<!-- Tabs (Phase 3 Prep) -->
+<ul class="nav nav-tabs mb-3" id="inventoryTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button" role="tab" aria-controls="items" aria-selected="true">
+        <i class="bi bi-list-task"></i> @Localizer["Items"]
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">
+         <i class="bi bi-gear"></i> @Localizer["Settings"]
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="inventoryTabsContent">
+  <!-- Items Tab -->
+  <div class="tab-pane fade show active" id="items" role="tabpanel" aria-labelledby="items-tab">
+     <div class="alert alert-info">
+         @Localizer["Items CRUD will be implemented in Phase 4."]
+     </div>
+  </div>
+  
+  <!-- Settings/Metadata Display Tab -->
+  <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+      <div class="card shadow-sm border-0 bg-light">
+          <div class="card-body">
+              <h5 class="mb-3">@Localizer["Configured Custom Fields"]</h5>
+              <ul>
+                  @for (int i = 1; i <= 3; i++)
+                  {
+                      if ((bool)Model.GetType().GetProperty("CustomString"+i+"State").GetValue(Model)) { <li><strong>String @i:</strong> @Model.GetType().GetProperty("CustomString"+i+"Name").GetValue(Model)</li>}
+                      if ((bool)Model.GetType().GetProperty("CustomText"+i+"State").GetValue(Model)) { <li><strong>Text @i:</strong> @Model.GetType().GetProperty("CustomText"+i+"Name").GetValue(Model)</li>}
+                      if ((bool)Model.GetType().GetProperty("CustomInt"+i+"State").GetValue(Model)) { <li><strong>Integer @i:</strong> @Model.GetType().GetProperty("CustomInt"+i+"Name").GetValue(Model)</li>}
+                      if ((bool)Model.GetType().GetProperty("CustomBool"+i+"State").GetValue(Model)) { <li><strong>Boolean @i:</strong> @Model.GetType().GetProperty("CustomBool"+i+"Name").GetValue(Model)</li>}
+                      if ((bool)Model.GetType().GetProperty("CustomLink"+i+"State").GetValue(Model)) { <li><strong>Link @i:</strong> @Model.GetType().GetProperty("CustomLink"+i+"Name").GetValue(Model)</li>}
+                  }
+              </ul>
+          </div>
+      </div>
+  </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Index" class="btn btn-link text-decoration-none"><i class="bi bi-arrow-left"></i> @Localizer["Back to List"]</a>
+</div>

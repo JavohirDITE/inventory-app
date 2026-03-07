@@ -1,0 +1,24 @@
+@model InventoryApp.Models.Inventory
+
+@{
+    ViewData["Title"] = Localizer["Delete Inventory"];
+}
+
+<h2 class="text-danger">@Localizer["Delete Inventory"]</h2>
+<h4 class="mb-4">@Localizer["Are you sure you want to delete this?"]</h4>
+
+<div class="card border-danger shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">@Model.Title</h5>
+        <h6 class="card-subtitle mb-2 text-muted">@Model.Category?.Name</h6>
+        <p class="card-text">@Model.Description</p>
+    </div>
+</div>
+
+<form asp-action="Delete">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">
+        <i class="bi bi-trash"></i> @Localizer["Confirm Delete"]
+    </button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">@Localizer["Cancel"]</a>
+</form>

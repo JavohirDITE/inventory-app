@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using InventoryApp.Models;
 using InventoryApp.Data;
 
@@ -14,7 +15,7 @@ public class HomeController : Controller
         _context = context;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
         bool dbConnected = false;
         try
@@ -25,9 +26,21 @@ public class HomeController : Controller
         {
             dbConnected = false;
         }
-
         ViewBag.DbConnected = dbConnected;
-        return View();
+
+        if (dbConnected)
+        {
+            var recentInventories = await _context.Inventories
+                .Include(i => i.Category)
+                .Include(i => i.Creator)
+                .OrderByDescending(i => i.Id)
+                .Take(5)
+                .ToListAsync();
+            
+            return View(recentInventories);
+        }
+
+        return View(new List<Inventory>());
     }
 
     public IActionResult Privacy()

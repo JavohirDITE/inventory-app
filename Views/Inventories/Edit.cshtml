@@ -1,0 +1,167 @@
+@model InventoryApp.Models.Inventory
+@{
+    ViewData["Title"] = Localizer["Edit Inventory"];
+}
+
+<h2>@Localizer["Edit Inventory"]</h2>
+<hr />
+
+<form asp-action="Edit" method="post">
+    <!-- THIS IS CRITICAL FOR EF CORE OPTIMISTIC LOCKING TO DETECT VERSIONS -->
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="Version" />
+    <input type="hidden" asp-for="CreatorId" />
+
+    <div asp-validation-summary="All" class="text-danger mb-3 font-weight-bold"></div>
+
+    <!-- Base Configuration -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Title" class="form-label fw-bold">@Localizer["Title"] *</label>
+            <input asp-for="Title" class="form-control" required />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label asp-for="CategoryId" class="form-label fw-bold">@Localizer["Category"] *</label>
+            <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.CategoryId" required></select>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label fw-bold">@Localizer["Description"]</label>
+        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+    </div>
+    
+    <div class="mb-3">
+        <label asp-for="ImageUrl" class="form-label fw-bold">@Localizer["Image URL"]</label>
+        <input asp-for="ImageUrl" class="form-control" />
+    </div>
+    
+    <div class="form-check mb-4">
+        <input asp-for="IsPublic" class="form-check-input" />
+        <label class="form-check-label fw-bold" asp-for="IsPublic">
+            @Localizer["Is Public (Allow any authenticated user to write items inside this inventory)"]
+        </label>
+    </div>
+
+    <!-- Custom Fields Setup using simple accordion -->
+    <div class="accordion mb-4" id="customFieldsAccordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCustom" aria-expanded="false" aria-controls="collapseCustom">
+            <strong>@Localizer["Edit Custom Item Fields Metadata"]</strong>
+          </button>
+        </h2>
+        <div id="collapseCustom" class="accordion-collapse collapse" data-bs-parent="#customFieldsAccordion">
+          <div class="accordion-body">
+              <div class="row">
+                  <!-- Strings -->
+                  <div class="col-md-4 mb-3 border-end">
+                      <h5 class="mb-3">@Localizer["String Fields"]</h5>
+                      @for(int i=1; i<=3; i++) {
+                         var stateProp = "CustomString" + i + "State";
+                         var nameProp = "CustomString" + i + "Name";
+                         var isChecked = (bool)Model.GetType().GetProperty(stateProp).GetValue(Model);
+                         var val = Model.GetType().GetProperty(nameProp).GetValue(Model)?.ToString();
+
+                         <div class="input-group mb-2 input-group-sm">
+                          <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="@stateProp" value="true" @(isChecked ? "checked" : "")>
+                          </div>
+                          <input type="text" class="form-control" name="@nameProp" value="@val" placeholder="Field Name">
+                        </div>
+                      }
+                  </div>
+                  
+                  <!-- Texts -->
+                  <div class="col-md-4 mb-3 border-end">
+                      <h5 class="mb-3">@Localizer["Text Fields"]</h5>
+                      @for(int i=1; i<=3; i++) {
+                         var stateProp = "CustomText" + i + "State";
+                         var nameProp = "CustomText" + i + "Name";
+                         var isChecked = (bool)Model.GetType().GetProperty(stateProp).GetValue(Model);
+                         var val = Model.GetType().GetProperty(nameProp).GetValue(Model)?.ToString();
+
+                         <div class="input-group mb-2 input-group-sm">
+                          <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="@stateProp" value="true" @(isChecked ? "checked" : "")>
+                          </div>
+                          <input type="text" class="form-control" name="@nameProp" value="@val" placeholder="Field Name">
+                        </div>
+                      }
+                  </div>
+
+                  <!-- Ints -->
+                  <div class="col-md-4 mb-3">
+                      <h5 class="mb-3">@Localizer["Integer Fields"]</h5>
+                      @for(int i=1; i<=3; i++) {
+                         var stateProp = "CustomInt" + i + "State";
+                         var nameProp = "CustomInt" + i + "Name";
+                         var isChecked = (bool)Model.GetType().GetProperty(stateProp).GetValue(Model);
+                         var val = Model.GetType().GetProperty(nameProp).GetValue(Model)?.ToString();
+
+                         <div class="input-group mb-2 input-group-sm">
+                          <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="@stateProp" value="true" @(isChecked ? "checked" : "")>
+                          </div>
+                          <input type="text" class="form-control" name="@nameProp" value="@val" placeholder="Field Name">
+                        </div>
+                      }
+                  </div>
+              </div>
+              
+              <hr />
+
+              <div class="row">
+                   <!-- Bools -->
+                  <div class="col-md-4 mb-3 border-end">
+                      <h5 class="mb-3">@Localizer["Boolean Fields"]</h5>
+                      @for(int i=1; i<=3; i++) {
+                         var stateProp = "CustomBool" + i + "State";
+                         var nameProp = "CustomBool" + i + "Name";
+                         var isChecked = (bool)Model.GetType().GetProperty(stateProp).GetValue(Model);
+                         var val = Model.GetType().GetProperty(nameProp).GetValue(Model)?.ToString();
+
+                         <div class="input-group mb-2 input-group-sm">
+                          <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="@stateProp" value="true" @(isChecked ? "checked" : "")>
+                          </div>
+                          <input type="text" class="form-control" name="@nameProp" value="@val" placeholder="Field Name">
+                        </div>
+                      }
+                  </div>
+
+                   <!-- Links -->
+                  <div class="col-md-4 mb-3">
+                      <h5 class="mb-3">@Localizer["Link Fields"]</h5>
+                      @for(int i=1; i<=3; i++) {
+                         var stateProp = "CustomLink" + i + "State";
+                         var nameProp = "CustomLink" + i + "Name";
+                         var isChecked = (bool)Model.GetType().GetProperty(stateProp).GetValue(Model);
+                         var val = Model.GetType().GetProperty(nameProp).GetValue(Model)?.ToString();
+
+                         <div class="input-group mb-2 input-group-sm">
+                          <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="@stateProp" value="true" @(isChecked ? "checked" : "")>
+                          </div>
+                          <input type="text" class="form-control" name="@nameProp" value="@val" placeholder="Field Name">
+                        </div>
+                      }
+                  </div>
+              </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group mb-3">
+        <button type="submit" class="btn btn-primary">@Localizer["Save Changes"]</button>
+        <a asp-action="Index" class="btn btn-secondary">@Localizer["Cancel"]</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
