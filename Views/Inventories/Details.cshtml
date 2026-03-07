@@ -1,87 +1,338 @@
-@model InventoryApp.Models.Inventory
+@model InventoryApp.Models.ViewModels.InventoryDetailsViewModel
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<IdentityUser> UserManager
 
 @{
-    ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Inventory.Title;
     var currentUserId = UserManager.GetUserId(User);
 }
 
+<!-- Flash Messages for Errors -->
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mb-3">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
 <div class="d-flex justify-content-between align-items-center mb-3 mt-3">
-    <h2>@Model.Title 
-       <span class="badge bg-secondary fs-6 align-middle">@Model.Category?.Name</span>
-       @if (Model.IsPublic) { <span class="badge bg-success fs-6 align-middle"><i class="bi bi-unlock"></i> Public Write</span> }
+    <h2>@Model.Inventory.Title 
+       <span class="badge bg-secondary fs-6 align-middle">@Model.Inventory.Category?.Name</span>
+       @if (Model.Inventory.IsPublic) { <span class="badge bg-success fs-6 align-middle"><i class="bi bi-unlock"></i> @Localizer["Public Write"]</span> }
     </h2>
     
-    @if (Model.CreatorId == currentUserId || User.IsInRole("Admin"))
+    @* We keep the standalone Edit button temporarily as requested, pointing to old Edit view *@
+    @if (Model.IsOwnerOrAdmin)
     {
         <div>
-            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">@Localizer["Edit"]</a>
-            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">@Localizer["Delete"]</a>
+            <a asp-action="Edit" asp-route-id="@Model.Inventory.Id" class="btn btn-outline-secondary btn-sm">@Localizer["Standalone Edit"]</a>
+            <a asp-action="Delete" asp-route-id="@Model.Inventory.Id" class="btn btn-outline-danger btn-sm">@Localizer["Delete"]</a>
         </div>
     }
 </div>
 
 <p class="text-muted mb-4">
-    <i class="bi bi-person"></i> @Localizer["Created by"]: @Model.Creator?.UserName
+    <i class="bi bi-person"></i> @Localizer["Created by"]: @Model.Inventory.Creator?.UserName
 </p>
 
-@if (!string.IsNullOrEmpty(Model.ImageUrl))
-{
-    <div class="mb-4 text-center">
-        <img src="@Model.ImageUrl" alt="@Model.Title" class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: cover;" />
-    </div>
-}
-
-<div class="card mb-4 shadow-sm">
-    <div class="card-body">
-        <h5 class="card-title text-primary"><i class="bi bi-info-circle"></i> @Localizer["Description"]</h5>
-        <p class="card-text" style="white-space: pre-wrap;">@Model.Description</p>
-    </div>
-</div>
-
-<!-- Tabs (Phase 3 Prep) -->
-<ul class="nav nav-tabs mb-3" id="inventoryTabs" role="tablist">
+<!-- TABS NAVIGATION -->
+<ul class="nav nav-tabs mb-4" id="inventoryTabs" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button" role="tab" aria-controls="items" aria-selected="true">
+    <button class="nav-link @(Model.ActiveTab == "items" ? "active" : "")" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button" role="tab" aria-controls="items" aria-selected="@(Model.ActiveTab == "items" ? "true" : "false")">
         <i class="bi bi-list-task"></i> @Localizer["Items"]
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">
-         <i class="bi bi-gear"></i> @Localizer["Settings"]
+    <button class="nav-link @(Model.ActiveTab == "discussion" ? "active" : "")" id="discussion-tab" data-bs-toggle="tab" data-bs-target="#discussion" type="button" role="tab" aria-controls="discussion" aria-selected="@(Model.ActiveTab == "discussion" ? "true" : "false")">
+        <i class="bi bi-chat-dots"></i> @Localizer["Discussion"]
     </button>
   </li>
+  
+  @if (Model.IsOwnerOrAdmin)
+  {
+      <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "settings" ? "active" : "")" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="@(Model.ActiveTab == "settings" ? "true" : "false")">
+             <i class="bi bi-gear"></i> @Localizer["Settings"]
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "access" ? "active" : "")" id="access-tab" data-bs-toggle="tab" data-bs-target="#access" type="button" role="tab" aria-controls="access" aria-selected="@(Model.ActiveTab == "access" ? "true" : "false")">
+             <i class="bi bi-shield-lock"></i> @Localizer["Access"]
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "fields" ? "active" : "")" id="fields-tab" data-bs-toggle="tab" data-bs-target="#fields" type="button" role="tab" aria-controls="fields" aria-selected="@(Model.ActiveTab == "fields" ? "true" : "false")">
+             <i class="bi bi-ui-checks"></i> @Localizer["Fields"]
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "statistics" ? "active" : "")" id="statistics-tab" data-bs-toggle="tab" data-bs-target="#statistics" type="button" role="tab" aria-controls="statistics" aria-selected="@(Model.ActiveTab == "statistics" ? "true" : "false")">
+             <i class="bi bi-graph-up"></i> @Localizer["Statistics"]
+        </button>
+      </li>
+  }
 </ul>
 
+<!-- TABS CONTENT -->
 <div class="tab-content" id="inventoryTabsContent">
-  <!-- Items Tab -->
-  <div class="tab-pane fade show active" id="items" role="tabpanel" aria-labelledby="items-tab">
-     <div class="alert alert-info">
-         @Localizer["Items CRUD will be implemented in Phase 4."]
-     </div>
-  </div>
   
-  <!-- Settings/Metadata Display Tab -->
-  <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
-      <div class="card shadow-sm border-0 bg-light">
-          <div class="card-body">
-              <h5 class="mb-3">@Localizer["Configured Custom Fields"]</h5>
-              <ul>
-                  @for (int i = 1; i <= 3; i++)
-                  {
-                      if ((bool)Model.GetType().GetProperty("CustomString"+i+"State").GetValue(Model)) { <li><strong>String @i:</strong> @Model.GetType().GetProperty("CustomString"+i+"Name").GetValue(Model)</li>}
-                      if ((bool)Model.GetType().GetProperty("CustomText"+i+"State").GetValue(Model)) { <li><strong>Text @i:</strong> @Model.GetType().GetProperty("CustomText"+i+"Name").GetValue(Model)</li>}
-                      if ((bool)Model.GetType().GetProperty("CustomInt"+i+"State").GetValue(Model)) { <li><strong>Integer @i:</strong> @Model.GetType().GetProperty("CustomInt"+i+"Name").GetValue(Model)</li>}
-                      if ((bool)Model.GetType().GetProperty("CustomBool"+i+"State").GetValue(Model)) { <li><strong>Boolean @i:</strong> @Model.GetType().GetProperty("CustomBool"+i+"Name").GetValue(Model)</li>}
-                      if ((bool)Model.GetType().GetProperty("CustomLink"+i+"State").GetValue(Model)) { <li><strong>Link @i:</strong> @Model.GetType().GetProperty("CustomLink"+i+"Name").GetValue(Model)</li>}
-                  }
-              </ul>
+  <!-- ===============================
+       1. ITEMS TAB 
+       =============================== -->
+  <div class="tab-pane fade @(Model.ActiveTab == "items" ? "show active" : "")" id="items" role="tabpanel" aria-labelledby="items-tab">
+      
+      @if (Model.HasWriteAccess)
+      {
+          <div class="mb-3">
+              <button class="btn btn-primary"><i class="bi bi-plus-lg"></i> @Localizer["Add Item"]</button>
+              <button class="btn btn-outline-secondary ms-2"><i class="bi bi-pencil"></i> @Localizer["Edit Selected"]</button>
+              <button class="btn btn-outline-danger ms-2"><i class="bi bi-trash"></i> @Localizer["Delete Selected"]</button>
+          </div>
+      }
+
+      <div class="table-responsive">
+          <table class="table table-hover align-middle border">
+              <thead class="table-light">
+                  <tr>
+                      @if (Model.HasWriteAccess) { <th style="width: 40px;"><input class="form-check-input" type="checkbox"></th> }
+                      <th>@Localizer["Item Name"]</th>
+                      <th>@Localizer["Tags"]</th>
+                      <th>@Localizer["Created"]</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  <!-- Empty state for now -->
+                  <tr>
+                      <td colspan="4" class="text-center text-muted py-4">
+                          <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                          @Localizer["No items found. Items will be implemented in Phase 4."]
+                      </td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
+  </div>
+
+  <!-- ===============================
+       2. DISCUSSION TAB 
+       =============================== -->
+  <div class="tab-pane fade @(Model.ActiveTab == "discussion" ? "show active" : "")" id="discussion" role="tabpanel" aria-labelledby="discussion-tab">
+      @if (Model.HasWriteAccess)
+      {
+          <form class="mb-4">
+              <div class="mb-3">
+                  <label class="form-label">@Localizer["Add a comment"]</label>
+                  <textarea class="form-control" rows="3" placeholder="@Localizer["Write something..."]"></textarea>
+              </div>
+              <button type="button" class="btn btn-primary">@Localizer["Post Comment"]</button>
+          </form>
+      }
+      else
+      {
+          <div class="alert alert-secondary">
+              <i class="bi bi-info-circle"></i> @Localizer["You do not have permission to post comments. Reading mode only."]
+          </div>
+      }
+
+      <div class="card border-0 bg-light">
+          <div class="card-body text-center text-muted py-5">
+              <i class="bi bi-chat-square-text fs-1 mb-3 d-block"></i>
+              @Localizer["Discussion system will be fully implemented in Phase 7."]
           </div>
       </div>
   </div>
+
+  @if (Model.IsOwnerOrAdmin)
+  {
+      <!-- ===============================
+           3. SETTINGS TAB (Owner Only)
+           =============================== -->
+      <div class="tab-pane fade @(Model.ActiveTab == "settings" ? "show active" : "")" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+          <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                  <h5 class="card-title mb-4">@Localizer["General Settings"]</h5>
+                  
+                  <form asp-action="UpdateSettings" method="post">
+                      <input type="hidden" asp-for="Inventory.Id" />
+                      <input type="hidden" asp-for="Inventory.Version" />
+                      
+                      <div class="mb-3">
+                          <label asp-for="Inventory.Title" class="form-label fw-bold">@Localizer["Title"] *</label>
+                          <input asp-for="Inventory.Title" class="form-control" required />
+                      </div>
+                      
+                      <div class="mb-3">
+                          <label asp-for="Inventory.CategoryId" class="form-label fw-bold">@Localizer["Category"] *</label>
+                          <select asp-for="Inventory.CategoryId" class="form-select" asp-items="Model.CategorySelectList" required></select>
+                      </div>
+
+                      <div class="mb-3">
+                          <label asp-for="Inventory.Description" class="form-label fw-bold">@Localizer["Description"]</label>
+                          <textarea asp-for="Inventory.Description" class="form-control" rows="4"></textarea>
+                      </div>
+
+                      <div class="mb-3">
+                          <label asp-for="Inventory.ImageUrl" class="form-label fw-bold">@Localizer["Image URL"]</label>
+                          <input asp-for="Inventory.ImageUrl" class="form-control" />
+                      </div>
+
+                      <div class="form-check mb-4">
+                          <input asp-for="Inventory.IsPublic" class="form-check-input" />
+                          <label class="form-check-label fw-bold" asp-for="Inventory.IsPublic">
+                              @Localizer["Is Public (Allow any authenticated user to write items inside this inventory)"]
+                          </label>
+                      </div>
+
+                      <button type="submit" class="btn btn-primary">@Localizer["Save Settings"]</button>
+                  </form>
+              </div>
+          </div>
+      </div>
+
+      <!-- ===============================
+           4. ACCESS TAB (Owner Only)
+           =============================== -->
+      <div class="tab-pane fade @(Model.ActiveTab == "access" ? "show active" : "")" id="access" role="tabpanel" aria-labelledby="access-tab">
+          <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                  <h5 class="card-title mb-4">@Localizer["Manage Write Access"]</h5>
+                  
+                  <div class="alert alert-info py-2">
+                       <small>@Localizer["Note: If 'Is Public' is enabled in Settings, all authenticated users have write access anyway."]</small>
+                  </div>
+
+                  <form class="d-flex mb-4">
+                      <input type="text" class="form-control me-2" placeholder="@Localizer["Enter username or email"]">
+                      <button type="button" class="btn btn-primary">@Localizer["Grant Access"]</button>
+                  </form>
+
+                  <table class="table table-bordered">
+                      <thead class="table-light">
+                          <tr>
+                              <th>@Localizer["User"]</th>
+                              <th style="width: 100px;">@Localizer["Action"]</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td colspan="2" class="text-center text-muted">@Localizer["No explicit users added yet."]</td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+
+      <!-- ===============================
+           5. FIELDS TAB (Owner Only)
+           =============================== -->
+      <div class="tab-pane fade @(Model.ActiveTab == "fields" ? "show active" : "")" id="fields" role="tabpanel" aria-labelledby="fields-tab">
+           <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                  <h5 class="card-title mb-4">@Localizer["Custom Item Fields Mapping"]</h5>
+                  
+                  <form asp-action="UpdateFields" method="post">
+                      <input type="hidden" asp-for="Inventory.Id" />
+                      <input type="hidden" asp-for="Inventory.Version" />
+                      
+                      <div class="row">
+                          <!-- Strings -->
+                          <div class="col-md-6 mb-4">
+                              <h6 class="fw-bold border-bottom pb-2">@Localizer["Strings (x3)"]</h6>
+                              @for(int i=1; i<=3; i++) {
+                                 var stateProp = "CustomString" + i + "State";
+                                 var nameProp = "CustomString" + i + "Name";
+                                 var isChecked = (bool)Model.Inventory.GetType().GetProperty(stateProp).GetValue(Model.Inventory);
+                                 var val = Model.Inventory.GetType().GetProperty(nameProp).GetValue(Model.Inventory)?.ToString();
+                                 <div class="input-group mb-2 input-group-sm">
+                                  <div class="input-group-text"><input class="form-check-input mt-0" type="checkbox" name="Inventory.@stateProp" value="true" @(isChecked ? "checked" : "")></div>
+                                  <input type="text" class="form-control" name="Inventory.@nameProp" value="@val" placeholder="Field Name">
+                                </div>
+                              }
+                          </div>
+                          
+                          <!-- Texts -->
+                          <div class="col-md-6 mb-4">
+                              <h6 class="fw-bold border-bottom pb-2">@Localizer["Text Areas (x3)"]</h6>
+                              @for(int i=1; i<=3; i++) {
+                                 var stateProp = "CustomText" + i + "State";
+                                 var nameProp = "CustomText" + i + "Name";
+                                 var isChecked = (bool)Model.Inventory.GetType().GetProperty(stateProp).GetValue(Model.Inventory);
+                                 var val = Model.Inventory.GetType().GetProperty(nameProp).GetValue(Model.Inventory)?.ToString();
+                                 <div class="input-group mb-2 input-group-sm">
+                                  <div class="input-group-text"><input class="form-check-input mt-0" type="checkbox" name="Inventory.@stateProp" value="true" @(isChecked ? "checked" : "")></div>
+                                  <input type="text" class="form-control" name="Inventory.@nameProp" value="@val" placeholder="Field Name">
+                                </div>
+                              }
+                          </div>
+                          
+                          <!-- Ints -->
+                          <div class="col-md-6 mb-4">
+                              <h6 class="fw-bold border-bottom pb-2">@Localizer["Integers (x3)"]</h6>
+                              @for(int i=1; i<=3; i++) {
+                                 var stateProp = "CustomInt" + i + "State";
+                                 var nameProp = "CustomInt" + i + "Name";
+                                 var isChecked = (bool)Model.Inventory.GetType().GetProperty(stateProp).GetValue(Model.Inventory);
+                                 var val = Model.Inventory.GetType().GetProperty(nameProp).GetValue(Model.Inventory)?.ToString();
+                                 <div class="input-group mb-2 input-group-sm">
+                                  <div class="input-group-text"><input class="form-check-input mt-0" type="checkbox" name="Inventory.@stateProp" value="true" @(isChecked ? "checked" : "")></div>
+                                  <input type="text" class="form-control" name="Inventory.@nameProp" value="@val" placeholder="Field Name">
+                                </div>
+                              }
+                          </div>
+
+                          <!-- Bools -->
+                          <div class="col-md-6 mb-4">
+                              <h6 class="fw-bold border-bottom pb-2">@Localizer["Booleans (x3)"]</h6>
+                              @for(int i=1; i<=3; i++) {
+                                 var stateProp = "CustomBool" + i + "State";
+                                 var nameProp = "CustomBool" + i + "Name";
+                                 var isChecked = (bool)Model.Inventory.GetType().GetProperty(stateProp).GetValue(Model.Inventory);
+                                 var val = Model.Inventory.GetType().GetProperty(nameProp).GetValue(Model.Inventory)?.ToString();
+                                 <div class="input-group mb-2 input-group-sm">
+                                  <div class="input-group-text"><input class="form-check-input mt-0" type="checkbox" name="Inventory.@stateProp" value="true" @(isChecked ? "checked" : "")></div>
+                                  <input type="text" class="form-control" name="Inventory.@nameProp" value="@val" placeholder="Field Name">
+                                </div>
+                              }
+                          </div>
+
+                           <!-- Links -->
+                          <div class="col-md-6 mb-4">
+                              <h6 class="fw-bold border-bottom pb-2">@Localizer["Links (x3)"]</h6>
+                              @for(int i=1; i<=3; i++) {
+                                 var stateProp = "CustomLink" + i + "State";
+                                 var nameProp = "CustomLink" + i + "Name";
+                                 var isChecked = (bool)Model.Inventory.GetType().GetProperty(stateProp).GetValue(Model.Inventory);
+                                 var val = Model.Inventory.GetType().GetProperty(nameProp).GetValue(Model.Inventory)?.ToString();
+                                 <div class="input-group mb-2 input-group-sm">
+                                  <div class="input-group-text"><input class="form-check-input mt-0" type="checkbox" name="Inventory.@stateProp" value="true" @(isChecked ? "checked" : "")></div>
+                                  <input type="text" class="form-control" name="Inventory.@nameProp" value="@val" placeholder="Field Name">
+                                </div>
+                              }
+                          </div>
+                      </div>
+
+                      <button type="submit" class="btn btn-primary mt-3">@Localizer["Save Fields Mapping"]</button>
+                  </form>
+              </div>
+          </div>
+      </div>
+
+      <!-- ===============================
+           6. STATISTICS TAB (Owner Only)
+           =============================== -->
+      <div class="tab-pane fade @(Model.ActiveTab == "statistics" ? "show active" : "")" id="statistics" role="tabpanel" aria-labelledby="statistics-tab">
+           <div class="card border-0 shadow-sm">
+              <div class="card-body text-center py-5 text-muted">
+                  <i class="bi bi-graph-up fs-1 d-block mb-3"></i>
+                  @Localizer["Statistics will be fully implemented in Phase 7."]
+              </div>
+          </div>
+      </div>
+  }
+
 </div>
 
-<div class="mt-4">
+<div class="mt-4 border-top pt-3">
     <a asp-action="Index" class="btn btn-link text-decoration-none"><i class="bi bi-arrow-left"></i> @Localizer["Back to List"]</a>
 </div>
