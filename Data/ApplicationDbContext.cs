@@ -17,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<Tag> Tags { get; set; }
     public DbSet<InventoryTag> InventoryTags { get; set; }
     public DbSet<InventoryAccess> InventoryAccesses { get; set; }
+    public DbSet<Item> Items { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -29,6 +30,15 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
         // Inventory Optimistic Locking explicit configuration
         builder.Entity<Inventory>()
+            .Property(i => i.Version)
+            .IsConcurrencyToken();
+
+        // Item Logic
+        builder.Entity<Item>()
+            .HasIndex(i => new { i.InventoryId, i.CustomId })
+            .IsUnique();
+            
+        builder.Entity<Item>()
             .Property(i => i.Version)
             .IsConcurrencyToken();
 

@@ -19,4 +19,7 @@ public class InventoryDetailsViewModel
     
     // Keep track of which tab to show active on page load/re-load
     public string ActiveTab { get; set; } = "items";
+
+    // The items belonging to this inventory
+    public IEnumerable<Item> Items { get; set; } = new List<Item>();
 }

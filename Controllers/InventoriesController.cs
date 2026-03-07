@@ -50,7 +50,11 @@ public class InventoriesController : Controller
             Inventory = inventory,
             ActiveTab = tab,
             IsOwnerOrAdmin = false,
-            HasWriteAccess = false
+            HasWriteAccess = false,
+            Items = await _context.Items
+                    .Where(i => i.InventoryId == id)
+                    .OrderByDescending(i => i.Id)
+                    .ToListAsync()
         };
 
         var user = await _userManager.GetUserAsync(User);

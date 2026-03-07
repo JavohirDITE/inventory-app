@@ -1,0 +1,114 @@
+@model InventoryApp.Models.Item
+@{
+    ViewData["Title"] = Localizer["Edit Item"];
+}
+
+<h2>@Localizer["Edit Item in"] @Model.Inventory?.Title</h2>
+<hr />
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="InventoryId" />
+    <input type="hidden" asp-for="Version" />
+    
+    <div asp-validation-summary="All" class="text-danger mb-3 font-weight-bold"></div>
+
+    <div class="row">
+        <!-- Render Custom String Fields -->
+        @for(int i=1; i<=3; i++)
+        {
+            var stateProp = "CustomString" + i + "State";
+            var nameProp = "CustomString" + i + "Name";
+            var isState = (bool?)Model.Inventory?.GetType().GetProperty(stateProp)?.GetValue(Model.Inventory) ?? false;
+            if (isState)
+            {
+                var label = Model.Inventory?.GetType().GetProperty(nameProp)?.GetValue(Model.Inventory)?.ToString() ?? "String "+i;
+                var val = Model.GetType().GetProperty("String"+i)?.GetValue(Model)?.ToString();
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">@label</label>
+                    <input type="text" class="form-control" name="String@(i)" value="@val" />
+                </div>
+            }
+        }
+    </div>
+
+    <div class="row">
+        <!-- Render Custom Integer Fields -->
+        @for(int i=1; i<=3; i++)
+        {
+            var stateProp = "CustomInt" + i + "State";
+            var nameProp = "CustomInt" + i + "Name";
+            var isState = (bool?)Model.Inventory?.GetType().GetProperty(stateProp)?.GetValue(Model.Inventory) ?? false;
+            if (isState)
+            {
+                var label = Model.Inventory?.GetType().GetProperty(nameProp)?.GetValue(Model.Inventory)?.ToString() ?? "Integer "+i;
+                var val = Model.GetType().GetProperty("Int"+i)?.GetValue(Model)?.ToString();
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">@label</label>
+                    <input type="number" class="form-control" name="Int@(i)" value="@val" />
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Render Custom Text Fields -->
+    @for(int i=1; i<=3; i++)
+    {
+        var stateProp = "CustomText" + i + "State";
+        var nameProp = "CustomText" + i + "Name";
+        var isState = (bool?)Model.Inventory?.GetType().GetProperty(stateProp)?.GetValue(Model.Inventory) ?? false;
+        if (isState)
+        {
+            var label = Model.Inventory?.GetType().GetProperty(nameProp)?.GetValue(Model.Inventory)?.ToString() ?? "Text "+i;
+            var val = Model.GetType().GetProperty("Text"+i)?.GetValue(Model)?.ToString();
+            <div class="mb-3">
+                <label class="form-label fw-bold">@label</label>
+                <textarea class="form-control" name="Text@(i)" rows="3">@val</textarea>
+            </div>
+        }
+    }
+
+    <!-- Render Custom URL Link Fields -->
+    @for(int i=1; i<=3; i++)
+    {
+        var stateProp = "CustomLink" + i + "State";
+        var nameProp = "CustomLink" + i + "Name";
+        var isState = (bool?)Model.Inventory?.GetType().GetProperty(stateProp)?.GetValue(Model.Inventory) ?? false;
+        if (isState)
+        {
+            var label = Model.Inventory?.GetType().GetProperty(nameProp)?.GetValue(Model.Inventory)?.ToString() ?? "Link "+i;
+            var val = Model.GetType().GetProperty("Link"+i)?.GetValue(Model)?.ToString();
+            <div class="mb-3">
+                <label class="form-label fw-bold">@label</label>
+                <input type="url" class="form-control" name="Link@(i)" placeholder="https://" value="@val" />
+            </div>
+        }
+    }
+
+    <!-- Render Custom Boolean Fields -->
+    @for(int i=1; i<=3; i++)
+    {
+        var stateProp = "CustomBool" + i + "State";
+        var nameProp = "CustomBool" + i + "Name";
+        var isState = (bool?)Model.Inventory?.GetType().GetProperty(stateProp)?.GetValue(Model.Inventory) ?? false;
+        if (isState)
+        {
+            var label = Model.Inventory?.GetType().GetProperty(nameProp)?.GetValue(Model.Inventory)?.ToString() ?? "Checkbox "+i;
+            var valObj = Model.GetType().GetProperty("Bool"+i)?.GetValue(Model);
+            var isChecked = valObj != null && (bool)valObj;
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="Bool@(i)" value="true" @(isChecked ? "checked" : "")>
+                <label class="form-check-label fw-bold">@label</label>
+            </div>
+        }
+    }
+
+    <div class="form-group mt-4">
+        <button type="submit" class="btn btn-primary">@Localizer["Save Changes"]</button>
+        <a asp-controller="Inventories" asp-action="Details" asp-route-id="@Model.InventoryId" asp-route-tab="items" class="btn btn-secondary">@Localizer["Cancel"]</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
