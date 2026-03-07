@@ -33,6 +33,56 @@ public class ItemsController : Controller
         return inventory.Accesses.Any(a => a.UserId == user.Id);
     }
 
+    // Helper: Generate CustomId based on Inventory parts configuration
+    private string GenerateCustomId(Inventory inventory)
+    {
+        if (inventory.CustomIdParts == null || !inventory.CustomIdParts.Any())
+        {
+            return Guid.NewGuid().ToString("N").ToUpper(); // Fallback
+        }
+
+        var parts = inventory.CustomIdParts.OrderBy(p => p.Order).ToList();
+        var sb = new System.Text.StringBuilder();
+
+        foreach (var part in parts)
+        {
+            switch (part.PartType)
+            {
+                case "FixedText":
+                    sb.Append(part.TextValue);
+                    break;
+                case "RandomHex20":
+                    // 5 hex chars
+                    sb.Append(Guid.NewGuid().ToString("N").Substring(0, 5).ToUpper());
+                    break;
+                case "RandomHex32":
+                    // 8 hex chars
+                    sb.Append(Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper());
+                    break;
+                case "RandomDigits6":
+                    sb.Append(Random.Shared.Next(100000, 999999).ToString());
+                    break;
+                case "RandomDigits9":
+                    sb.Append(Random.Shared.Next(100000000, 999999999).ToString());
+                    break;
+                case "Guid":
+                    sb.Append(Guid.NewGuid().ToString("N").ToUpper());
+                    break;
+                case "DateTime":
+                    string format = string.IsNullOrWhiteSpace(part.DateFormat) ? "yyyyMMdd" : part.DateFormat;
+                    sb.Append(DateTime.UtcNow.ToString(format));
+                    break;
+                case "Sequence":
+                    int padding = part.Padding ?? 1;
+                    if (padding < 1) padding = 1;
+                    sb.Append(inventory.NextSequenceValue.ToString().PadLeft(padding, '0'));
+                    break;
+            }
+        }
+
+        return sb.ToString();
+    }
+
     // GET: Items/Create?inventoryId=5
     [Authorize]
     public async Task<IActionResult> Create(int inventoryId)
@@ -58,6 +108,7 @@ public class ItemsController : Controller
     {
         var inventory = await _context.Inventories
             .Include(i => i.Accesses)
+            .Include(i => i.CustomIdParts) // Need parts for generator
             .FirstOrDefaultAsync(i => i.Id == item.InventoryId);
 
         if (inventory == null) return NotFound();
@@ -77,13 +128,12 @@ public class ItemsController : Controller
 
         if (ModelState.IsValid)
         {
-            // Transient CustomId Generation Retry Loop
             bool saved = false;
             int attempt = 0;
             while (!saved && attempt < 5)
             {
                 attempt++;
-                string candidate = Guid.NewGuid().ToString().Substring(0, 8).ToUpper();
+                string candidate = GenerateCustomId(inventory);
                 item.CustomId = candidate;
 
                 // Simple check before hitting DB Unique constraint
@@ -91,14 +141,25 @@ public class ItemsController : Controller
                 {
                     try
                     {
+                        // If Sequence was used, we must increment it and save Inventory state
+                        if (inventory.CustomIdParts != null && inventory.CustomIdParts.Any(p => p.PartType == "Sequence"))
+                        {
+                            inventory.NextSequenceValue++;
+                            _context.Update(inventory);
+                        }
+
                         _context.Add(item);
                         await _context.SaveChangesAsync();
                         saved = true;
                     }
                     catch (DbUpdateException)
                     {
-                        // DB Unique constraint hit because of concurrent saves, detach and retry
+                        // DB Unique constraint hit (concurrent), detach item, revert sequence explicitly and retry
                         _context.Entry(item).State = EntityState.Detached;
+                        
+                        // Refetch sequence from DB to discard local `++` change if it failed
+                        var freshInv = await _context.Inventories.AsNoTracking().FirstOrDefaultAsync(i => i.Id == inventory.Id);
+                        if (freshInv != null) inventory.NextSequenceValue = freshInv.NextSequenceValue;
                     }
                 }
             }

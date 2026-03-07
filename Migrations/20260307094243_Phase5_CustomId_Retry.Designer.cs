@@ -3,6 +3,7 @@ using System;
 using InventoryApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InventoryApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260307094243_Phase5_CustomId_Retry")]
+    partial class Phase5_CustomId_Retry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -228,9 +231,6 @@ namespace InventoryApp.Migrations
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean");
-
-                    b.Property<int>("NextSequenceValue")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -592,7 +592,7 @@ namespace InventoryApp.Migrations
             modelBuilder.Entity("InventoryApp.Models.CustomIdPart", b =>
                 {
                     b.HasOne("InventoryApp.Models.Inventory", "Inventory")
-                        .WithMany("CustomIdParts")
+                        .WithMany()
                         .HasForeignKey("InventoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -735,8 +735,6 @@ namespace InventoryApp.Migrations
             modelBuilder.Entity("InventoryApp.Models.Inventory", b =>
                 {
                     b.Navigation("Accesses");
-
-                    b.Navigation("CustomIdParts");
 
                     b.Navigation("InventoryTags");
                 });

@@ -69,4 +69,9 @@ public class Inventory
 
     public ICollection<InventoryTag> InventoryTags { get; set; } = new List<InventoryTag>();
     public ICollection<InventoryAccess> Accesses { get; set; } = new List<InventoryAccess>();
+
+    // --- Custom ID Formatting ---
+    // Start at 1, incremented automatically when an Item is created with a 'Sequence' part.
+    public int NextSequenceValue { get; set; } = 1;
+    public ICollection<CustomIdPart> CustomIdParts { get; set; } = new List<CustomIdPart>();
 }

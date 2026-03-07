@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<InventoryTag> InventoryTags { get; set; }
     public DbSet<InventoryAccess> InventoryAccesses { get; set; }
     public DbSet<Item> Items { get; set; }
+    public DbSet<CustomIdPart> CustomIdParts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

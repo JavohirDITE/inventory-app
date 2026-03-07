@@ -66,6 +66,11 @@
         </button>
       </li>
       <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "customid" ? "active" : "")" id="customid-tab" data-bs-toggle="tab" data-bs-target="#customid" type="button" role="tab" aria-controls="customid" aria-selected="@(Model.ActiveTab == "customid" ? "true" : "false")">
+             <i class="bi bi-hash"></i> @Localizer["Custom ID"]
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
         <button class="nav-link @(Model.ActiveTab == "statistics" ? "active" : "")" id="statistics-tab" data-bs-toggle="tab" data-bs-target="#statistics" type="button" role="tab" aria-controls="statistics" aria-selected="@(Model.ActiveTab == "statistics" ? "true" : "false")">
              <i class="bi bi-graph-up"></i> @Localizer["Statistics"]
         </button>
@@ -353,7 +358,76 @@
       </div>
 
       <!-- ===============================
-           6. STATISTICS TAB (Owner Only)
+           6. CUSTOM ID TAB (Owner Only)
+           =============================== -->
+      <div class="tab-pane fade @(Model.ActiveTab == "customid" ? "show active" : "")" id="customid" role="tabpanel" aria-labelledby="customid-tab">
+           <div class="card border-0 shadow-sm mb-4">
+              <div class="card-body">
+                  <h5 class="card-title mb-4">@Localizer["Custom ID Format Builder"]</h5>
+                  <p class="text-muted">@Localizer["Configure how Item IDs are generated. The ID is assembled by joining these parts in order. Leave blank to use fallback GUIDs."]</p>
+                  
+                  <form asp-action="UpdateCustomIdMapping" method="post">
+                      <input type="hidden" name="id" value="@Model.Inventory.Id" />
+                      <input type="hidden" name="defaultVersion" value="@Model.Inventory.Version" />
+                      
+                      <div class="table-responsive">
+                          <table class="table align-middle">
+                              <thead>
+                                  <tr>
+                                      <th style="width: 50px;">#</th>
+                                      <th>@Localizer["Part Type"]</th>
+                                      <th>@Localizer["Settings"] (Text / DateFormat / Padding)</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  @{
+                                      var existingParts = Model.Inventory.CustomIdParts?.OrderBy(p => p.Order).ToList() ?? new List<CustomIdPart>();
+                                      // Render 5 slots for simplicity
+                                      for (int i = 0; i < 5; i++)
+                                      {
+                                          var part = i < existingParts.Count ? existingParts[i] : new CustomIdPart();
+                                          <tr>
+                                              <td class="text-muted fw-bold">@(i + 1)</td>
+                                              <td>
+                                                  <select name="parts[@i].PartType" class="form-select part-type-select" data-index="@i">
+                                                      <option value="">-- @Localizer["Empty Slot"] --</option>
+                                                      <!option value="FixedText" @(part.PartType == "FixedText" ? "selected" : "")>Fixed Text</!option>
+                                                      <!option value="RandomHex20" @(part.PartType == "RandomHex20" ? "selected" : "")>Random (5 hex chars)</!option>
+                                                      <!option value="RandomHex32" @(part.PartType == "RandomHex32" ? "selected" : "")>Random (8 hex chars)</!option>
+                                                      <!option value="RandomDigits6" @(part.PartType == "RandomDigits6" ? "selected" : "")>Random (6 digits)</!option>
+                                                      <!option value="RandomDigits9" @(part.PartType == "RandomDigits9" ? "selected" : "")>Random (9 digits)</!option>
+                                                      <!option value="Sequence" @(part.PartType == "Sequence" ? "selected" : "")>Sequence Counter</!option>
+                                                      <!option value="DateTime" @(part.PartType == "DateTime" ? "selected" : "")>Date/Time</!option>
+                                                      <!option value="Guid" @(part.PartType == "Guid" ? "selected" : "")>GUID (N)</!option>
+                                                  </select>
+                                              </td>
+                                              <td>
+                                                  <div class="input-group">
+                                                      <input type="text" name="parts[@i].TextValue" value="@part.TextValue" class="form-control" placeholder="Fixed Text Value" />
+                                                      <input type="text" name="parts[@i].DateFormat" value="@part.DateFormat" class="form-control" placeholder="DateFormat (e.g. yyyyMM)" />
+                                                      <input type="number" name="parts[@i].Padding" value="@part.Padding" class="form-control" placeholder="Padding (e.g. 4)" />
+                                                  </div>
+                                              </td>
+                                          </tr>
+                                      }
+                                  }
+                              </tbody>
+                          </table>
+                      </div>
+
+                      <button type="submit" class="btn btn-primary mt-3">@Localizer["Save ID Format"]</button>
+                  </form>
+                  
+                  <div class="mt-4 p-3 bg-light rounded border">
+                      <h6 class="fw-bold text-muted mb-2">@Localizer["Live Preview Example"]:</h6>
+                      <code id="customIdPreview" class="fs-5 text-dark"></code>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <!-- ===============================
+           7. STATISTICS TAB (Owner Only)
            =============================== -->
       <div class="tab-pane fade @(Model.ActiveTab == "statistics" ? "show active" : "")" id="statistics" role="tabpanel" aria-labelledby="statistics-tab">
            <div class="card border-0 shadow-sm">
@@ -420,6 +494,45 @@
                     updateToolbar();
                 });
             });
+
+            // Live Preview logic for Custom ID Tab
+            const previewEl = document.getElementById("customIdPreview");
+            const updatePreview = () => {
+                let previewStr = "";
+                for(let i=0; i<5; i++) {
+                    const typeSelect = document.querySelector(`select[name='parts[${i}].PartType']`);
+                    if(!typeSelect || !typeSelect.value) continue;
+                    
+                    const textVal = document.querySelector(`input[name='parts[${i}].TextValue']`).value || "";
+                    const dateFmt = document.querySelector(`input[name='parts[${i}].DateFormat']`).value || "yyyyMMdd";
+                    const padVal = parseInt(document.querySelector(`input[name='parts[${i}].Padding']`).value || "1");
+
+                    switch(typeSelect.value) {
+                        case "FixedText": previewStr += textVal; break;
+                        case "RandomHex20": previewStr += "A1B2C"; break;
+                        case "RandomHex32": previewStr += "A1B2C3D4"; break;
+                        case "RandomDigits6": previewStr += "123456"; break;
+                        case "RandomDigits9": previewStr += "123456789"; break;
+                        case "Sequence": previewStr += "1".padStart(Math.max(1, padVal), '0'); break;
+                        case "Guid": previewStr += "1234567890ABCDEF1234567890ABCDEF"; break;
+                        case "DateTime": 
+                            // simplistic mock
+                            const d = new Date();
+                            if(dateFmt.includes('yyyy')) previewStr += d.getFullYear();
+                            else if (dateFmt.includes('yy')) previewStr += d.getFullYear().toString().slice(-2);
+                            else previewStr += "DATE";
+                            break;
+                    }
+                }
+                previewEl.innerText = previewStr || "GUID (Fallback)";
+            };
+
+            const idInputs = document.querySelectorAll("#customid select, #customid input");
+            idInputs.forEach(input => {
+                input.addEventListener('change', updatePreview);
+                input.addEventListener('keyup', updatePreview);
+            });
+            updatePreview(); // Initial call
         });
     </script>
 }

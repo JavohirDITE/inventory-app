@@ -71,6 +71,9 @@ public class InventoriesController : Controller
         if (viewModel.IsOwnerOrAdmin)
         {
             viewModel.CategorySelectList = new SelectList(_context.Categories, "Id", "Name", inventory.CategoryId);
+            
+            // Explicitly load Custom Id Parts for the Owner view
+            await _context.Entry(inventory).Collection(i => i.CustomIdParts).LoadAsync();
         }
 
         return View(viewModel);
@@ -268,6 +271,56 @@ public class InventoriesController : Controller
         {
              TempData["ErrorMessage"] = "Data changed by another user. Please refresh and try again.";
              return RedirectToAction(nameof(Details), new { id = dbInventory.Id, tab = "fields" });
+        }
+    }
+
+    // POST: Inventories/UpdateCustomIdMapping/5
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateCustomIdMapping(int id, List<CustomIdPart> parts, int defaultVersion)
+    {
+        var dbInventory = await _context.Inventories
+            .Include(i => i.CustomIdParts)
+            .FirstOrDefaultAsync(i => i.Id == id);
+            
+        if (dbInventory == null) return NotFound();
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null || (dbInventory.CreatorId != user.Id && !User.IsInRole("Admin")))
+        {
+            return Forbid();
+        }
+
+        // Clear existing parts and apply new ones
+        _context.CustomIdParts.RemoveRange(dbInventory.CustomIdParts);
+        
+        int order = 0;
+        foreach(var part in parts.Where(p => !string.IsNullOrEmpty(p.PartType)))
+        {
+            part.InventoryId = dbInventory.Id;
+            part.Order = order++;
+            
+            // Cleanup irrelevant fields based on type
+            if (part.PartType != "FixedText") part.TextValue = null;
+            if (part.PartType != "DateTime") part.DateFormat = null;
+            if (part.PartType != "Sequence") part.Padding = null;
+
+            _context.CustomIdParts.Add(part);
+        }
+
+        // Optimistic locking via Inventory Version
+        _context.Entry(dbInventory).Property(i => i.Version).OriginalValue = defaultVersion;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id = dbInventory.Id, tab = "customid" });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+             TempData["ErrorMessage"] = "Data changed by another user. Please refresh and try again.";
+             return RedirectToAction(nameof(Details), new { id = dbInventory.Id, tab = "customid" });
         }
     }
 
