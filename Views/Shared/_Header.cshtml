@@ -56,6 +56,14 @@
         <!-- Auth -->
         @if (SignInManager.IsSignedIn(User))
         {
+            @if (User.IsInRole("Admin"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link text-warning fw-bold" asp-area="" asp-controller="Admin" asp-action="Index">
+                        <i class="bi bi-shield-lock-fill"></i> @Localizer["Admin Panel"]
+                    </a>
+                </li>
+            }
             <li class="nav-item">
                 <a class="nav-link" asp-area="Identity" asp-page="/Account/Manage/Index" title="@Localizer["Profile"]">
                     @User.Identity?.Name

@@ -50,6 +50,25 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             .HasIndex(l => new { l.ItemId, l.UserId })
             .IsUnique();
 
+        // User Deletion Cascade
+        builder.Entity<Inventory>()
+            .HasOne(i => i.Creator)
+            .WithMany()
+            .HasForeignKey(i => i.CreatorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Comment>()
+            .HasOne(c => c.User)
+            .WithMany()
+            .HasForeignKey(c => c.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Like>()
+            .HasOne(l => l.User)
+            .WithMany()
+            .HasForeignKey(l => l.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Composite Keys
         builder.Entity<InventoryTag>()
             .HasKey(it => new { it.InventoryId, it.TagId });

@@ -1,0 +1,131 @@
+@model List<InventoryApp.Models.ViewModels.UserViewModel>
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@{
+    ViewData["Title"] = Localizer["Admin Panel"];
+}
+
+<div class="container my-4">
+    <h2 class="mb-4">@Localizer["Admin Panel - User Management"]</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form id="adminActionsForm" asp-action="PerformAction" method="post">
+        <!-- Action Toolbar -->
+        <div class="mb-3 d-flex gap-2">
+            <button type="submit" name="actionType" value="Block" class="btn btn-warning admin-action-btn" disabled>
+                <i class="bi bi-lock-fill"></i> @Localizer["Block"]
+            </button>
+            <button type="submit" name="actionType" value="Unblock" class="btn btn-success admin-action-btn" disabled>
+                <i class="bi bi-unlock-fill"></i> @Localizer["Unblock"]
+            </button>
+            <button type="submit" name="actionType" value="AddAdmin" class="btn btn-info admin-action-btn" disabled>
+                <i class="bi bi-person-badge"></i> @Localizer["Make Admin"]
+            </button>
+            <button type="submit" name="actionType" value="RemoveAdmin" class="btn btn-secondary admin-action-btn" disabled>
+                <i class="bi bi-person-dash"></i> @Localizer["Remove Admin"]
+            </button>
+            <button type="submit" name="actionType" value="Delete" class="btn btn-danger admin-action-btn" disabled
+                onclick="return confirm('@Localizer["Are you sure you want to delete selected users?"]');">
+                <i class="bi bi-trash"></i> @Localizer["Delete"]
+            </button>
+        </div>
+
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-hover align-middle mb-0 bg-white">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40px;">
+                            <input class="form-check-input" type="checkbox" id="selectAllUsers">
+                        </th>
+                        <th>@Localizer["Username"]</th>
+                        <th>@Localizer["Email"]</th>
+                        <th>@Localizer["Roles"]</th>
+                        <th>@Localizer["Status"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td>
+                                <input class="form-check-input user-checkbox" type="checkbox" name="userIds" value="@user.Id">
+                            </td>
+                            <td class="fw-bold">@user.UserName</td>
+                            <td class="text-muted">@user.Email</td>
+                            <td>
+                                @if (user.IsAdmin)
+                                {
+                                    <span class="badge bg-primary">Admin</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">User</span>
+                                }
+                            </td>
+                            <td>
+                                @if (user.IsBlocked)
+                                {
+                                    <span class="badge bg-danger"><i class="bi bi-lock-fill"></i> Blocked</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Active</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">@Localizer["No users found."]</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const selectAll = document.getElementById("selectAllUsers");
+            const checkboxes = document.querySelectorAll(".user-checkbox");
+            const actionBtns = document.querySelectorAll(".admin-action-btn");
+
+            function updateButtons() {
+                const anyChecked = document.querySelectorAll(".user-checkbox:checked").length > 0;
+                actionBtns.forEach(btn => btn.disabled = !anyChecked);
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener("change", function () {
+                    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                    updateButtons();
+                });
+            }
+
+            checkboxes.forEach(cb => {
+                cb.addEventListener("change", function () {
+                    if (!this.checked && selectAll) selectAll.checked = false;
+                    updateButtons();
+                });
+            });
+        });
+    </script>
+}
