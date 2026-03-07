@@ -13,6 +13,8 @@ public class Inventory
 
     public string? Description { get; set; }
 
+    public NpgsqlTypes.NpgsqlTsVector? SearchVector { get; set; }
+
     [MaxLength(2048)]
     public string? ImageUrl { get; set; }
 

@@ -57,5 +57,25 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             new Category { Id = 3, Name = "Silverware" },
             new Category { Id = 4, Name = "Other" }
         );
+
+        // --- PostgreSQL Full-Text Search Configuration (Using 'simple' for multilingual) ---
+        
+        builder.Entity<Inventory>()
+            .HasGeneratedTsVectorColumn(
+                i => i.SearchVector,
+                "simple",
+                i => new { i.Title, i.Description }
+            )
+            .HasIndex(i => i.SearchVector)
+            .HasMethod("GIN");
+
+        builder.Entity<Item>()
+            .HasGeneratedTsVectorColumn(
+                i => i.SearchVector,
+                "simple",
+                i => new { i.CustomId, i.String1, i.String2, i.String3, i.Text1, i.Text2, i.Text3 }
+            )
+            .HasIndex(i => i.SearchVector)
+            .HasMethod("GIN");
     }
 }

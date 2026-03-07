@@ -1,11 +1,94 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@model InventoryApp.Models.ViewModels.SearchViewModel
+
 @{
     ViewData["Title"] = Localizer["Search Results"];
 }
 
 <div class="container mt-4">
-    <h2>@Localizer["Search Results for"]: "@ViewBag.Query"</h2>
-    
-    <div class="alert alert-info mt-3">
-        @Localizer["Full text search will be implemented in Phase 6."]
-    </div>
+    <h2 class="mb-4">@Localizer["Search Results for"]: "@Model.Query"</h2>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Query) && !Model.HasResults)
+    {
+        <div class="alert alert-info mt-3">
+            @Localizer["No results found for your query. Try different keywords."]
+        </div>
+    }
+
+    @if (Model.Inventories.Any())
+    {
+        <h3 class="mt-4 border-bottom pb-2">@Localizer["Inventories Found"] (@Model.Inventories.Count)</h3>
+        <div class="table-responsive mb-5">
+            <table class="table table-hover align-middle shadow-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>@Localizer["Title"]</th>
+                        <th>@Localizer["Category"]</th>
+                        <th>@Localizer["Creator"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(var inv in Model.Inventories)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-controller="Inventories" asp-action="Details" asp-route-id="@inv.Id" class="fw-bold text-decoration-none">
+                                    @inv.Title
+                                </a>
+                            </td>
+                            <td><span class="badge bg-secondary">@inv.Category?.Name</span></td>
+                            <td><i class="bi bi-person text-muted"></i> @inv.Creator?.UserName</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (Model.Items.Any())
+    {
+        <h3 class="mt-4 border-bottom pb-2">@Localizer["Items Found"] (@Model.Items.Count)</h3>
+        <div class="table-responsive mb-5">
+            <table class="table table-hover align-middle shadow-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>@Localizer["Custom ID"]</th>
+                        <th>@Localizer["Inventory"]</th>
+                        <th>@Localizer["Created Date"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                @* Items do not have their own standalone details page yet as per Phase 4, they live in the Inventories Details Items tab. *@
+                                <a asp-controller="Inventories" asp-action="Details" asp-route-id="@item.InventoryId" asp-route-tab="items" class="fw-bold text-decoration-none">
+                                    <code>@item.CustomId</code>
+                                </a>
+                            </td>
+                            <td>
+                                @if(item.Inventory != null)
+                                {
+                                    <a asp-controller="Inventories" asp-action="Details" asp-route-id="@item.InventoryId" class="text-decoration-none text-dark">
+                                        @item.Inventory.Title
+                                    </a>
+                                }
+                            </td>
+                            <td>@item.CreatedAt.ToShortDateString()</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (string.IsNullOrWhiteSpace(Model.Query))
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-search fs-1 d-block mb-3"></i>
+            <h4>@Localizer["Type something in the search bar to find inventories and items."]</h4>
+        </div>
+    }
 </div>

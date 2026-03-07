@@ -22,6 +22,8 @@ public class Item
     [ConcurrencyCheck]
     public int Version { get; set; }
 
+    public NpgsqlTypes.NpgsqlTsVector? SearchVector { get; set; }
+
     // --- Fixed 15 Slots for Custom Field Data ---
     [MaxLength(255)] public string? String1 { get; set; }
     [MaxLength(255)] public string? String2 { get; set; }
