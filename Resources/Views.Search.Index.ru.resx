@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Search Results" xml:space="preserve">
+    <value>Результаты поиска</value>
+  </data>
+  <data name="Search Results for" xml:space="preserve">
+    <value>Результаты поиска по запросу</value>
+  </data>
+  <data name="Full text search will be implemented in Phase 6." xml:space="preserve">
+    <value>Полнотекстовый поиск будет реализован на Этапе 6.</value>
+  </data>
+</root>

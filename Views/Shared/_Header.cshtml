@@ -1,0 +1,76 @@
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+<nav class="navbar navbar-expand-lg bg-body-tertiary mb-3 shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">InventoryApp</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      
+      <!-- Search Form -->
+      <form class="d-flex me-auto ms-lg-3 mb-2 mb-lg-0" asp-controller="Search" asp-action="Index" method="get">
+        <input class="form-control me-2" type="search" name="q" placeholder="@Localizer["Search..."]" aria-label="Search" value="@Context.Request.Query["q"]">
+        <button class="btn btn-outline-primary" type="submit">@Localizer["Search"]</button>
+      </form>
+
+      <ul class="navbar-nav mb-2 mb-lg-0 d-flex align-items-center">
+        <!-- Theme Toggle -->
+        <li class="nav-item me-2">
+            <button class="btn btn-sm btn-outline-secondary" id="theme-toggle" title="@Localizer["Toggle Theme"]">
+                <i class="bi bi-moon-stars-fill" id="theme-icon"></i>
+            </button>
+        </li>
+
+        <!-- Language Selector -->
+        <li class="nav-item me-3 dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+             <i class="bi bi-globe"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+                <form asp-controller="Language" asp-action="SetLanguage" method="post" class="dropdown-item p-0 m-0 text-center">
+                    <input type="hidden" name="culture" value="en" />
+                    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                    <button type="submit" class="btn btn-link text-decoration-none text-reset w-100">English</button>
+                </form>
+            </li>
+            <li>
+                <form asp-controller="Language" asp-action="SetLanguage" method="post" class="dropdown-item p-0 m-0 text-center">
+                    <input type="hidden" name="culture" value="ru" />
+                    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                    <button type="submit" class="btn btn-link text-decoration-none text-reset w-100">Русский</button>
+                </form>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Auth -->
+        @if (SignInManager.IsSignedIn(User))
+        {
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Identity" asp-page="/Account/Manage/Index" title="@Localizer["Profile"]">
+                    @User.Identity?.Name
+                </a>
+            </li>
+            <li class="nav-item">
+                <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                    <button type="submit" class="btn nav-link">@Localizer["Logout"]</button>
+                </form>
+            </li>
+        }
+        else
+        {
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Identity" asp-page="/Account/Register">@Localizer["Register"]</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link btn btn-primary text-white ms-2" asp-area="Identity" asp-page="/Account/Login">@Localizer["Login"]</a>
+            </li>
+        }
+      </ul>
+    </div>
+  </div>
+</nav>
