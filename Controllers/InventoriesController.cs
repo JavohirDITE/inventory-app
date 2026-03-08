@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using InventoryApp.Data;
 using InventoryApp.Models;
+using InventoryApp.Models.ViewModels;
 
 namespace InventoryApp.Controllers;
 
@@ -74,6 +75,61 @@ public class InventoriesController : Controller
             
             // Explicitly load Custom Id Parts for the Owner view
             await _context.Entry(inventory).Collection(i => i.CustomIdParts).LoadAsync();
+        }
+
+        if (tab == "statistics")
+        {
+            var stats = new InventoryStatisticsViewModel
+            {
+                TotalItems = viewModel.Items.Count()
+            };
+
+            var itemsList = viewModel.Items.ToList();
+
+            if (itemsList.Any())
+            {
+                // Numeric Stats
+                for (int i = 1; i <= 3; i++)
+                {
+                    bool isState = (bool)inventory.GetType().GetProperty("CustomInt" + i + "State")!.GetValue(inventory)!;
+                    if (isState)
+                    {
+                        var name = inventory.GetType().GetProperty("CustomInt" + i + "Name")!.GetValue(inventory)?.ToString() ?? $"Number {i}";
+                        var values = itemsList.Select(it => (int?)it.GetType().GetProperty("CustomInt" + i + "Value")!.GetValue(it))
+                                              .Where(v => v.HasValue).Select(v => (double)v!.Value).ToList();
+                        
+                        if (values.Any())
+                        {
+                            stats.NumericStats[name] = (values.Min(), values.Max(), Math.Round(values.Average(), 2));
+                        }
+                    }
+                }
+
+                // String Stats (Top 3)
+                for (int i = 1; i <= 3; i++)
+                {
+                    bool isState = (bool)inventory.GetType().GetProperty("CustomString" + i + "State")!.GetValue(inventory)!;
+                    if (isState)
+                    {
+                        var name = inventory.GetType().GetProperty("CustomString" + i + "Name")!.GetValue(inventory)?.ToString() ?? $"String {i}";
+                        var values = itemsList.Select(it => (string?)it.GetType().GetProperty("CustomString" + i + "Value")!.GetValue(it))
+                                              .Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
+                                              
+                        if (values.Any())
+                        {
+                            var top3 = values.GroupBy(v => v!)
+                                             .Select(g => (Value: g.Key, Count: g.Count()))
+                                             .OrderByDescending(x => x.Count)
+                                             .Take(3)
+                                             .ToList();
+                                             
+                            stats.StringTopStats[name] = top3;
+                        }
+                    }
+                }
+            }
+
+            viewModel.Statistics = stats;
         }
 
         return View(viewModel);
@@ -364,6 +420,74 @@ public class InventoriesController : Controller
         _context.Inventories.Remove(inventory);
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
+    }
+
+    // POST: Inventories/GrantAccess
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GrantAccess(int inventoryId, string userEmailOrName)
+    {
+        var dbInventory = await _context.Inventories.FindAsync(inventoryId);
+        if (dbInventory == null) return NotFound();
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null || (dbInventory.CreatorId != currentUser.Id && !User.IsInRole("Admin")))
+        {
+            return Forbid();
+        }
+
+        var targetUser = await _userManager.FindByEmailAsync(userEmailOrName) 
+                         ?? await _userManager.FindByNameAsync(userEmailOrName);
+
+        if (targetUser != null && targetUser.Id != dbInventory.CreatorId)
+        {
+            var exists = await _context.InventoryAccesses.AnyAsync(a => a.InventoryId == inventoryId && a.UserId == targetUser.Id);
+            if (!exists)
+            {
+                _context.InventoryAccesses.Add(new InventoryAccess { InventoryId = inventoryId, UserId = targetUser.Id });
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Access granted to {targetUser.UserName}.";
+            }
+        }
+        else
+        {
+            TempData["ErrorMessage"] = "User not found or is already the owner.";
+        }
+
+        return RedirectToAction(nameof(Details), new { id = inventoryId, tab = "access" });
+    }
+
+    // POST: Inventories/RevokeAccess
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RevokeAccess(int inventoryId, List<string> userIds)
+    {
+        var dbInventory = await _context.Inventories.FindAsync(inventoryId);
+        if (dbInventory == null) return NotFound();
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null || (dbInventory.CreatorId != currentUser.Id && !User.IsInRole("Admin")))
+        {
+            return Forbid();
+        }
+
+        if (userIds != null && userIds.Any())
+        {
+            var accesses = await _context.InventoryAccesses
+                .Where(a => a.InventoryId == inventoryId && userIds.Contains(a.UserId))
+                .ToListAsync();
+
+            if (accesses.Any())
+            {
+                _context.InventoryAccesses.RemoveRange(accesses);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Selected users have been removed from access list.";
+            }
+        }
+
+        return RedirectToAction(nameof(Details), new { id = inventoryId, tab = "access" });
     }
 
     private bool InventoryExists(int id)

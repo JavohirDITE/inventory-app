@@ -22,4 +22,18 @@ public class InventoryDetailsViewModel
 
     // The items belonging to this inventory
     public IEnumerable<Item> Items { get; set; } = new List<Item>();
+    
+    // Statistics for the inventory
+    public InventoryStatisticsViewModel? Statistics { get; set; }
+}
+
+public class InventoryStatisticsViewModel
+{
+    public int TotalItems { get; set; }
+    
+    // Key = Custom Field Name, Value = Tuple(Min, Max, Avg)
+    public Dictionary<string, (double Min, double Max, double Avg)> NumericStats { get; set; } = new();
+
+    // Key = Custom Field Name, Value = List of (Value, Count)
+    public Dictionary<string, List<(string Value, int Count)>> StringTopStats { get; set; } = new();
 }

@@ -108,7 +108,7 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while connecting or migrating the database.");
     }
 
-    // Seed Admin Role
+    // Seed Admin Role and User
     try 
     {
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
@@ -116,10 +116,27 @@ using (var scope = app.Services.CreateScope())
         {
             await roleManager.CreateAsync(new IdentityRole("Admin"));
         }
+
+        var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+        if (!string.IsNullOrEmpty(adminEmail))
+        {
+            var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+            if (adminUser != null && !await userManager.IsInRoleAsync(adminUser, "Admin"))
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+                logger.LogInformation($"Granted Admin role to user with email: {adminEmail}");
+            }
+        }
+
+        // Seed test data
+        var appContext = services.GetRequiredService<ApplicationDbContext>();
+        var userMgr = services.GetRequiredService<UserManager<IdentityUser>>();
+        await DbSeeder.SeedDataAsync(appContext, userMgr);
     } 
     catch (Exception ex) 
     {
-        logger.LogError(ex, "Error seeding roles.");
+        logger.LogError(ex, "Error seeding roles, admin, or test data.");
     }
 }
 
