@@ -60,6 +60,14 @@ builder.Services.AddControllersWithViews()
 
 builder.Services.AddSignalR();
 
+// Configure forwarded headers for reverse proxies (e.g. Railway)
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
     var supportedCultures = new[] { new CultureInfo("en"), new CultureInfo("ru") };
@@ -70,6 +78,7 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 // Apply migrations automatically on startup
 using (var scope = app.Services.CreateScope())
 {
