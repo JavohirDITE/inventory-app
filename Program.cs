@@ -39,6 +39,8 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
     {
         googleOptions.ClientId = googleClientId;
         googleOptions.ClientSecret = googleClientSecret;
+        googleOptions.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
+        googleOptions.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
     });
 }
 
@@ -162,6 +164,13 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.UseRequestLocalization();
 
+app.UseCookiePolicy(new CookiePolicyOptions
+{
+    MinimumSameSitePolicy = SameSiteMode.Unspecified,
+    Secure = CookieSecurePolicy.Always
+});
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
