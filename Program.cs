@@ -7,8 +7,9 @@ using InventoryApp.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Parse DATABASE_PUBLIC_URL from environment
-var dbUrl = Environment.GetEnvironmentVariable("DATABASE_PUBLIC_URL") 
+// Parse DATABASE_URL or DATABASE_PUBLIC_URL from environment
+var dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
+            ?? Environment.GetEnvironmentVariable("DATABASE_PUBLIC_URL") 
             ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 string connectionString = dbUrl ?? "";
