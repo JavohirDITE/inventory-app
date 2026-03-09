@@ -312,9 +312,9 @@
               <div class="card-body">
                   <h5 class="card-title mb-4">@Localizer["Custom Item Fields Mapping"]</h5>
                   
-                  <form asp-action="UpdateFields" method="post">
-                      <input type="hidden" asp-for="Inventory.Id" />
-                      <input type="hidden" asp-for="Inventory.Version" />
+                  <form asp-action="UpdateFields" asp-route-id="@Model.Inventory.Id" method="post">
+                      <input type="hidden" name="Inventory.Id" value="@Model.Inventory.Id" />
+                      <input type="hidden" name="Inventory.Version" value="@Model.Inventory.Version" />
                       
                       <div class="row">
                           <!-- Strings -->

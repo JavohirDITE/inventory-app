@@ -328,7 +328,7 @@ public class InventoriesController : Controller
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateFields(int id, Inventory inventoryFields)
+    public async Task<IActionResult> UpdateFields(int id, [Bind(Prefix="Inventory")] Inventory inventoryFields)
     {
         if (id != inventoryFields.Id) return NotFound();
 
