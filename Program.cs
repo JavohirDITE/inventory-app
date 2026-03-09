@@ -88,6 +88,12 @@ using (var scope = app.Services.CreateScope())
     var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
+        var dbContext = services.GetRequiredService<ApplicationDbContext>();
+        await dbContext.Database.MigrateAsync();
+        
+        // Sanitize bad seeded description that violates requirements in production DB
+        await dbContext.Database.ExecuteSqlRawAsync(
+            "UPDATE \"Inventories\" SET \"Description\" = 'Restricted write access. Viewable by everyone.', \"Title\" = 'Bob''s Sci-Fi Collection' WHERE \"Description\" LIKE '%Private items not visible to guests%'");
         var context = services.GetRequiredService<ApplicationDbContext>();
         
         logger.LogInformation("Attempting to connect to the database...");

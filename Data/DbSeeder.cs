@@ -42,11 +42,11 @@ public static class DbSeeder
                 CustomInt1State = true, CustomInt1Name = "Publish Year"
             };
 
-            // Private Inventory with write access granted to Alice
+            // Inventory with restricted write access granted to Alice
             var inv2 = new Inventory
             {
-                Title = "Bob's Secret Collection",
-                Description = "Private items not visible to guests.",
+                Title = "Bob's Sci-Fi Collection",
+                Description = "Restricted write access. Viewable by everyone.",
                 CategoryId = catId,
                 CreatorId = user2.Id,
                 IsPublic = false

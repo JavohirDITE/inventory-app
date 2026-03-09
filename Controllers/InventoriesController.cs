@@ -154,9 +154,13 @@ public class InventoriesController : Controller
         
         inventory.CreatorId = user.Id;
 
-        // Clear Creator/Category navigation properties validation errors if any because they are objects
+        // Clear navigation and auto-generated properties validation errors
         ModelState.Remove("Creator");
         ModelState.Remove("Category");
+        ModelState.Remove("InventoryTags");
+        ModelState.Remove("Accesses");
+        ModelState.Remove("CustomIdParts");
+        ModelState.Remove("SearchVector");
 
         if (ModelState.IsValid)
         {
@@ -204,6 +208,10 @@ public class InventoriesController : Controller
 
         ModelState.Remove("Creator");
         ModelState.Remove("Category");
+        ModelState.Remove("InventoryTags");
+        ModelState.Remove("Accesses");
+        ModelState.Remove("CustomIdParts");
+        ModelState.Remove("SearchVector");
 
         if (ModelState.IsValid)
         {
