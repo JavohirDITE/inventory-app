@@ -169,6 +169,7 @@ public class InventoriesController : Controller
         {
             // Validate custom fields explicitly
             var prefixes = new[] { "String", "Text", "Int", "Bool", "Link" };
+            bool hasFieldErrors = false;
             foreach (var p in prefixes)
             {
                 for (int i = 1; i <= 3; i++)
@@ -177,13 +178,18 @@ public class InventoriesController : Controller
                     var name = inventory.GetType().GetProperty($"Custom{p}{i}Name")!.GetValue(inventory)?.ToString();
                     if (state && (string.IsNullOrWhiteSpace(name) || name.Trim().Equals("Field Name", StringComparison.OrdinalIgnoreCase)))
                     {
-                        ModelState.AddModelError($"Custom{p}{i}Name", "Please provide a valid name for the enabled custom field, do not use placeholder names.");
+                        ModelState.AddModelError($"Custom{p}{i}Name", "Invalid name.");
+                        hasFieldErrors = true;
                     }
                     else if (!state) 
                     {
                         inventory.GetType().GetProperty($"Custom{p}{i}Name")!.SetValue(inventory, null);
                     }
                 }
+            }
+            if (hasFieldErrors)
+            {
+                ModelState.AddModelError("", "Please provide valid names for all enabled custom fields. 'Field Name' is not allowed.");
             }
         }
 
@@ -242,6 +248,7 @@ public class InventoriesController : Controller
         {
             // Validate custom fields explicitly
             var prefixes = new[] { "String", "Text", "Int", "Bool", "Link" };
+            bool hasFieldErrors = false;
             foreach (var p in prefixes)
             {
                 for (int i = 1; i <= 3; i++)
@@ -250,13 +257,18 @@ public class InventoriesController : Controller
                     var name = inventory.GetType().GetProperty($"Custom{p}{i}Name")!.GetValue(inventory)?.ToString();
                     if (state && (string.IsNullOrWhiteSpace(name) || name.Trim().Equals("Field Name", StringComparison.OrdinalIgnoreCase)))
                     {
-                        ModelState.AddModelError($"Custom{p}{i}Name", "Please provide a valid name for the enabled custom field, do not use placeholder names.");
+                        ModelState.AddModelError($"Custom{p}{i}Name", "Invalid name.");
+                        hasFieldErrors = true;
                     }
                     else if (!state) 
                     {
                         inventory.GetType().GetProperty($"Custom{p}{i}Name")!.SetValue(inventory, null);
                     }
                 }
+            }
+            if (hasFieldErrors)
+            {
+                ModelState.AddModelError("", "Please provide valid names for all enabled custom fields. 'Field Name' is not allowed.");
             }
         }
 

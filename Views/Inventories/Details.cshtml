@@ -21,12 +21,12 @@
        @if (Model.Inventory.IsPublic) { <span class="badge bg-success fs-6 align-middle"><i class="bi bi-unlock"></i> @Localizer["Public Write"]</span> }
     </h2>
     
-    @* We keep the standalone Edit button temporarily as requested, pointing to old Edit view *@
     @if (Model.IsOwnerOrAdmin)
     {
         <div>
-            <a asp-action="Edit" asp-route-id="@Model.Inventory.Id" class="btn btn-outline-secondary btn-sm">@Localizer["Standalone Edit"]</a>
-            <a asp-action="Delete" asp-route-id="@Model.Inventory.Id" class="btn btn-outline-danger btn-sm">@Localizer["Delete"]</a>
+            <a asp-action="Delete" asp-route-id="@Model.Inventory.Id" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash"></i> @Localizer["Delete Inventory"]
+            </a>
         </div>
     }
 </div>
@@ -127,10 +127,32 @@
                               }
                               <td><code>@item.CustomId</code></td>
                               <td>
-                                  @if (!string.IsNullOrEmpty(item.String1)) { <strong>@item.String1</strong><br /> }
-                                  @if (!string.IsNullOrEmpty(item.String2)) { <span class="text-muted">@item.String2</span><br /> }
-                                  @if (!string.IsNullOrEmpty(item.String3)) { <span class="text-muted">@item.String3</span> }
-                                  @if (string.IsNullOrEmpty(item.String1) && string.IsNullOrEmpty(item.String2) && string.IsNullOrEmpty(item.String3))
+                                  @{
+                                      var summaryLines = new List<string>();
+                                      foreach (var p in new[] { "String", "Int", "Text", "Bool" })
+                                      {
+                                          for (int i = 1; i <= 3; i++)
+                                          {
+                                              var state = Model.Inventory.GetType().GetProperty($"Custom{p}{i}State")?.GetValue(Model.Inventory) as bool? ?? false;
+                                              if (state)
+                                              {
+                                                  var name = Model.Inventory.GetType().GetProperty($"Custom{p}{i}Name")?.GetValue(Model.Inventory)?.ToString();
+                                                  var val = item.GetType().GetProperty($"{p}{i}")?.GetValue(item)?.ToString();
+                                                  if (!string.IsNullOrWhiteSpace(val))
+                                                  {
+                                                      summaryLines.Add($"<span class='text-muted small'>{name}:</span> <strong>{val}</strong>");
+                                                  }
+                                              }
+                                          }
+                                      }
+                                  }
+                                  @if (summaryLines.Any())
+                                  {
+                                      <div style="max-width:300px; white-space: normal; line-height: 1.4;">
+                                          @Html.Raw(string.Join(" <span class='text-muted mx-1'>|</span> ", summaryLines))
+                                      </div>
+                                  }
+                                  else
                                   {
                                       <span class="text-muted fst-italic">@Localizer["Empty"]</span>
                                   }

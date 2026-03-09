@@ -32,14 +32,20 @@ public static class DbSeeder
             // Public Inventory
             var inv1 = new Inventory
             {
-                Title = "Alice's Sci-Fi Books",
-                Description = "A collection of classic science fiction books.",
+                Title = "Alice's Comics Collection",
+                Description = "A collection of classic comic books.",
                 CategoryId = catId,
                 CreatorId = user1.Id,
                 IsPublic = true,
-                CustomString1State = true, CustomString1Name = "Author",
-                CustomString2State = true, CustomString2Name = "Title",
-                CustomInt1State = true, CustomInt1Name = "Publish Year"
+                CustomString1State = true, CustomString1Name = "Name",
+                CustomInt1State = true, CustomInt1Name = "Year",
+                CustomIdParts = new List<CustomIdPart>
+                {
+                    new CustomIdPart { Order = 0, PartType = "FixedText", TextValue = "COM-" },
+                    new CustomIdPart { Order = 1, PartType = "DateTime", DateFormat = "yyyy" },
+                    new CustomIdPart { Order = 2, PartType = "FixedText", TextValue = "-" },
+                    new CustomIdPart { Order = 3, PartType = "Sequence", Padding = 4 }
+                }
             };
 
             // Inventory with restricted write access granted to Alice
@@ -61,13 +67,15 @@ public static class DbSeeder
             await context.SaveChangesAsync();
 
             // 4. Items
-            var item1 = new Item { CustomId = "SCI-FI-001", InventoryId = inv1.Id, String1 = "Frank Herbert", String2 = "Dune", Int1 = 1965 };
-            var item2 = new Item { CustomId = "SCI-FI-002", InventoryId = inv1.Id, String1 = "Isaac Asimov", String2 = "Foundation", Int1 = 1951 };
-            var item3 = new Item { CustomId = "SEC-001", InventoryId = inv2.Id, String1 = "Top Secret Item" };
+            var item1 = new Item { CustomId = "COM-2026-0001", InventoryId = inv1.Id, String1 = "Spiderman", Int1 = 1989 };
+            var item2 = new Item { CustomId = "COM-2026-0002", InventoryId = inv1.Id, String1 = "Batman", Int1 = 1986 };
+            var item3 = new Item { CustomId = "COM-2026-0003", InventoryId = inv1.Id, String1 = "X-Men", Int1 = 1991 };
+            var item4 = new Item { CustomId = "SEC-001", InventoryId = inv2.Id, String1 = "Top Secret Item" };
             
             context.Items.Add(item1);
             context.Items.Add(item2);
             context.Items.Add(item3);
+            context.Items.Add(item4);
             await context.SaveChangesAsync();
 
             // 5. Comments
