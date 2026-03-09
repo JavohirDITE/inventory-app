@@ -156,6 +156,7 @@ public class InventoriesController : Controller
 
         // Clear navigation and auto-generated properties validation errors
         ModelState.Remove("Creator");
+        ModelState.Remove("CreatorId");
         ModelState.Remove("Category");
         ModelState.Remove("InventoryTags");
         ModelState.Remove("Accesses");
