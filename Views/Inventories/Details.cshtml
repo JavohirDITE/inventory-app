@@ -520,16 +520,16 @@
                               @foreach (var stat in Model.Statistics.NumericStats)
                               {
                                   <div class="col-md-4">
-                                      <div class="card border h-100 bg-light">
+                                      <div class="card border h-100 bg-body-tertiary">
                                           <div class="card-body">
                                               <h6 class="card-title text-primary"><i class="bi bi-123"></i> @stat.Key</h6>
                                               <div class="d-flex justify-content-between mb-1 mt-3">
-                                                  <span class="text-muted small">@Localizer["Average"]:</span>
-                                                  <span class="fw-bold fs-5">@stat.Value.Avg</span>
+                                                  <span class="text-body-secondary small">@Localizer["Average"]:</span>
+                                                  <span class="fw-bold fs-5 text-body">@stat.Value.Avg</span>
                                               </div>
                                               <div class="d-flex justify-content-between small">
-                                                  <span class="text-muted">@Localizer["Range"]:</span>
-                                                  <span>@stat.Value.Min – @stat.Value.Max</span>
+                                                  <span class="text-body-secondary">@Localizer["Range"]:</span>
+                                                  <span class="text-body">@stat.Value.Min – @stat.Value.Max</span>
                                               </div>
                                           </div>
                                       </div>
@@ -545,13 +545,13 @@
                               @foreach (var stat in Model.Statistics.StringTopStats)
                               {
                                   <div class="col-md-4">
-                                      <div class="card border h-100">
+                                      <div class="card border h-100 bg-body-tertiary">
                                           <div class="card-body">
                                               <h6 class="card-title text-success"><i class="bi bi-type-text"></i> @stat.Key</h6>
                                               <ul class="list-group list-group-flush mt-3 border-top-0">
                                                   @foreach(var item in stat.Value)
                                                   {
-                                                      <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent">
+                                                      <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent text-body">
                                                           <span class="text-truncate me-2">@item.Value</span>
                                                           <span class="badge bg-secondary rounded-pill">@item.Count</span>
                                                       </li>

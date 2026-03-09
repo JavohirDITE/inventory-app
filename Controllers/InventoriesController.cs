@@ -409,7 +409,7 @@ public class InventoriesController : Controller
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateCustomIdMapping(int id, List<CustomIdPart> parts, int defaultVersion)
+    public async Task<IActionResult> UpdateCustomIdMapping(int id, [FromForm] List<CustomIdPart> parts, int defaultVersion)
     {
         var dbInventory = await _context.Inventories
             .Include(i => i.CustomIdParts)

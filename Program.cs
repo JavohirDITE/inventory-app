@@ -107,6 +107,24 @@ using (var scope = app.Services.CreateScope())
             }
         }
         
+        // Ensure the existing seeded demo inventory gets the Custom ID format
+        var demoInv = await dbContext.Inventories.Include(i => i.CustomIdParts).FirstOrDefaultAsync(i => i.Id == 1 || i.Title == "Alice's Comics Collection" || i.Title == "Alice's Sci-Fi Books");
+        if (demoInv != null && (!demoInv.CustomIdParts?.Any() ?? true))
+        {
+            demoInv.Title = "Alice's Comics Collection";
+            demoInv.CustomString1State = true; demoInv.CustomString1Name = "Name";
+            demoInv.CustomInt1State = true; demoInv.CustomInt1Name = "Year";
+            demoInv.CustomIdParts = new List<InventoryApp.Models.CustomIdPart>
+            {
+                new InventoryApp.Models.CustomIdPart { Order = 0, PartType = "FixedText", TextValue = "COM-" },
+                new InventoryApp.Models.CustomIdPart { Order = 1, PartType = "DateTime", DateFormat = "yyyy" },
+                new InventoryApp.Models.CustomIdPart { Order = 2, PartType = "FixedText", TextValue = "-" },
+                new InventoryApp.Models.CustomIdPart { Order = 3, PartType = "Sequence", Padding = 4 }
+            };
+            if (demoInv.NextSequenceValue <= 0) demoInv.NextSequenceValue = 1;
+            await dbContext.SaveChangesAsync();
+        }
+        
         var context = services.GetRequiredService<ApplicationDbContext>();
         
         logger.LogInformation("Attempting to connect to the database...");
