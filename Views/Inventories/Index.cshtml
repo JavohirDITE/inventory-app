@@ -24,7 +24,6 @@
                 <th scope="col">@Localizer["Category"]</th>
                 <th scope="col">@Localizer["Creator"]</th>
                 <th scope="col">@Localizer["Description"]</th>
-                <th scope="col" class="text-end">@Localizer["Actions"]</th>
             </tr>
         </thead>
         <tbody>
@@ -43,19 +42,13 @@
                             </div>
                         }
                     </td>
-                    <td class="fw-bold">@item.Title</td>
+                    <td class="fw-bold">
+                        <a asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none text-reset">@item.Title</a>
+                    </td>
                     <td><span class="badge bg-info text-dark">@item.Category?.Name</span></td>
                     <td><small class="text-muted">@item.Creator?.UserName</small></td>
                     <td class="text-truncate" style="max-width: 250px;">
                         <span title="@item.Description">@item.Description</span>
-                    </td>
-                    <td class="text-end">
-                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">@Localizer["Details"]</a>
-                        @if (item.CreatorId == currentUserId || User.IsInRole("Admin"))
-                        {
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary btn-sm ms-1"><i class="bi bi-pencil"></i></a>
-                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm ms-1"><i class="bi bi-trash"></i></a>
-                        }
                     </td>
                 </tr>
             }

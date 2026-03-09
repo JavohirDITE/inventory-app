@@ -51,7 +51,6 @@
                                     <tr>
                                         <th>@Localizer["Title"]</th>
                                         <th>@Localizer["Category"]</th>
-                                        <th class="text-end">@Localizer["Actions"]</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -64,11 +63,6 @@
                                                 </a>
                                             </td>
                                             <td><span class="badge bg-primary">@inv.Category?.Name</span></td>
-                                            <td class="text-end">
-                                                <a asp-controller="Inventories" asp-action="Details" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-primary">
-                                                    <i class="bi bi-eye"></i> @Localizer["View"]
-                                                </a>
-                                            </td>
                                         </tr>
                                     }
                                 </tbody>
@@ -99,7 +93,6 @@
                                     <tr>
                                         <th>@Localizer["Title"]</th>
                                         <th>@Localizer["Category"]</th>
-                                        <th class="text-end">@Localizer["Actions"]</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -112,11 +105,6 @@
                                                 </a>
                                             </td>
                                             <td><span class="badge bg-primary">@inv.Category?.Name</span></td>
-                                            <td class="text-end">
-                                                <a asp-controller="Inventories" asp-action="Details" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-primary">
-                                                    <i class="bi bi-eye"></i> @Localizer["View"]
-                                                </a>
-                                            </td>
                                         </tr>
                                     }
                                 </tbody>

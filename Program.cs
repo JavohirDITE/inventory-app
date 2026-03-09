@@ -94,6 +94,19 @@ using (var scope = app.Services.CreateScope())
         // Sanitize bad seeded description that violates requirements in production DB
         await dbContext.Database.ExecuteSqlRawAsync(
             "UPDATE \"Inventories\" SET \"Description\" = 'Restricted write access. Viewable by everyone.', \"Title\" = 'Bob''s Sci-Fi Collection' WHERE \"Description\" LIKE '%Private items not visible to guests%'");
+        // Clean up any historical dummy value "Field Name" from custom fields metadata
+        var prefixes = new[] { "String", "Text", "Int", "Bool", "Link" };
+        foreach (var p in prefixes)
+        {
+            for (int i = 1; i <= 3; i++)
+            {
+                await dbContext.Database.ExecuteSqlRawAsync($@"
+                    UPDATE ""Inventories"" SET ""Custom{p}{i}State"" = false, ""Custom{p}{i}Name"" = null 
+                    WHERE ""Custom{p}{i}Name"" = 'Field Name' OR (trim(COALESCE(""Custom{p}{i}Name"", '')) = '' AND ""Custom{p}{i}State"" = true);
+                ");
+            }
+        }
+        
         var context = services.GetRequiredService<ApplicationDbContext>();
         
         logger.LogInformation("Attempting to connect to the database...");

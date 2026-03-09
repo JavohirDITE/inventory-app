@@ -77,60 +77,62 @@ public class InventoriesController : Controller
             await _context.Entry(inventory).Collection(i => i.CustomIdParts).LoadAsync();
         }
 
-        if (tab == "statistics")
+        // Compute Statistics (Always calculate so the client-side tab has the data)
+        var stats = new InventoryStatisticsViewModel
         {
-            var stats = new InventoryStatisticsViewModel
-            {
-                TotalItems = viewModel.Items.Count()
-            };
+            TotalItems = viewModel.Items.Count()
+        };
 
-            var itemsList = viewModel.Items.ToList();
+        var itemsList = viewModel.Items.ToList();
 
-            if (itemsList.Any())
+        if (itemsList.Any())
+        {
+            // Numeric Stats
+            for (int i = 1; i <= 3; i++)
             {
-                // Numeric Stats
-                for (int i = 1; i <= 3; i++)
+                bool isState = (bool)inventory.GetType().GetProperty("CustomInt" + i + "State")!.GetValue(inventory)!;
+                if (isState)
                 {
-                    bool isState = (bool)inventory.GetType().GetProperty("CustomInt" + i + "State")!.GetValue(inventory)!;
-                    if (isState)
+                    var name = inventory.GetType().GetProperty("CustomInt" + i + "Name")!.GetValue(inventory)?.ToString() ?? $"Number {i}";
+                    var values = itemsList.Select(it => (int?)it.GetType().GetProperty("Int" + i)!.GetValue(it))
+                                          .Where(v => v.HasValue).Select(v => (double)v!.Value).ToList();
+                    
+                    if (values.Any())
                     {
-                        var name = inventory.GetType().GetProperty("CustomInt" + i + "Name")!.GetValue(inventory)?.ToString() ?? $"Number {i}";
-                        var values = itemsList.Select(it => (int?)it.GetType().GetProperty("CustomInt" + i + "Value")!.GetValue(it))
-                                              .Where(v => v.HasValue).Select(v => (double)v!.Value).ToList();
-                        
-                        if (values.Any())
-                        {
-                            stats.NumericStats[name] = (values.Min(), values.Max(), Math.Round(values.Average(), 2));
-                        }
+                        stats.NumericStats[name] = (values.Min(), values.Max(), Math.Round(values.Average(), 2));
                     }
-                }
-
-                // String Stats (Top 3)
-                for (int i = 1; i <= 3; i++)
-                {
-                    bool isState = (bool)inventory.GetType().GetProperty("CustomString" + i + "State")!.GetValue(inventory)!;
-                    if (isState)
+                    else
                     {
-                        var name = inventory.GetType().GetProperty("CustomString" + i + "Name")!.GetValue(inventory)?.ToString() ?? $"String {i}";
-                        var values = itemsList.Select(it => (string?)it.GetType().GetProperty("CustomString" + i + "Value")!.GetValue(it))
-                                              .Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
-                                              
-                        if (values.Any())
-                        {
-                            var top3 = values.GroupBy(v => v!)
-                                             .Select(g => (Value: g.Key, Count: g.Count()))
-                                             .OrderByDescending(x => x.Count)
-                                             .Take(3)
-                                             .ToList();
-                                             
-                            stats.StringTopStats[name] = top3;
-                        }
+                        stats.NumericStats[name] = (0, 0, 0);
                     }
                 }
             }
 
-            viewModel.Statistics = stats;
+            // String Stats (Top 3)
+            for (int i = 1; i <= 3; i++)
+            {
+                bool isState = (bool)inventory.GetType().GetProperty("CustomString" + i + "State")!.GetValue(inventory)!;
+                if (isState)
+                {
+                    var name = inventory.GetType().GetProperty("CustomString" + i + "Name")!.GetValue(inventory)?.ToString() ?? $"String {i}";
+                    var values = itemsList.Select(it => (string?)it.GetType().GetProperty("String" + i)!.GetValue(it))
+                                          .Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
+                                          
+                    if (values.Any())
+                    {
+                        var top3 = values.GroupBy(v => v!)
+                                         .Select(g => (Value: g.Key, Count: g.Count()))
+                                         .OrderByDescending(x => x.Count)
+                                         .Take(3)
+                                         .ToList();
+                                         
+                        stats.StringTopStats[name] = top3;
+                    }
+                }
+            }
         }
+
+        viewModel.Statistics = stats;
 
         return View(viewModel);
     }
@@ -162,6 +164,28 @@ public class InventoriesController : Controller
         ModelState.Remove("Accesses");
         ModelState.Remove("CustomIdParts");
         ModelState.Remove("SearchVector");
+
+        if (ModelState.IsValid)
+        {
+            // Validate custom fields explicitly
+            var prefixes = new[] { "String", "Text", "Int", "Bool", "Link" };
+            foreach (var p in prefixes)
+            {
+                for (int i = 1; i <= 3; i++)
+                {
+                    var state = (bool)inventory.GetType().GetProperty($"Custom{p}{i}State")!.GetValue(inventory)!;
+                    var name = inventory.GetType().GetProperty($"Custom{p}{i}Name")!.GetValue(inventory)?.ToString();
+                    if (state && (string.IsNullOrWhiteSpace(name) || name.Trim().Equals("Field Name", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        ModelState.AddModelError($"Custom{p}{i}Name", "Please provide a valid name for the enabled custom field, do not use placeholder names.");
+                    }
+                    else if (!state) 
+                    {
+                        inventory.GetType().GetProperty($"Custom{p}{i}Name")!.SetValue(inventory, null);
+                    }
+                }
+            }
+        }
 
         if (ModelState.IsValid)
         {
@@ -213,6 +237,28 @@ public class InventoriesController : Controller
         ModelState.Remove("Accesses");
         ModelState.Remove("CustomIdParts");
         ModelState.Remove("SearchVector");
+
+        if (ModelState.IsValid)
+        {
+            // Validate custom fields explicitly
+            var prefixes = new[] { "String", "Text", "Int", "Bool", "Link" };
+            foreach (var p in prefixes)
+            {
+                for (int i = 1; i <= 3; i++)
+                {
+                    var state = (bool)inventory.GetType().GetProperty($"Custom{p}{i}State")!.GetValue(inventory)!;
+                    var name = inventory.GetType().GetProperty($"Custom{p}{i}Name")!.GetValue(inventory)?.ToString();
+                    if (state && (string.IsNullOrWhiteSpace(name) || name.Trim().Equals("Field Name", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        ModelState.AddModelError($"Custom{p}{i}Name", "Please provide a valid name for the enabled custom field, do not use placeholder names.");
+                    }
+                    else if (!state) 
+                    {
+                        inventory.GetType().GetProperty($"Custom{p}{i}Name")!.SetValue(inventory, null);
+                    }
+                }
+            }
+        }
 
         if (ModelState.IsValid)
         {
@@ -295,33 +341,41 @@ public class InventoriesController : Controller
             return Forbid();
         }
 
-        // Apply only Fields mapping
+        // Helper to validate and clean custom field names
+        void ApplyCustomField(string typePrefix, int index)
+        {
+            var propState = dbInventory.GetType().GetProperty($"Custom{typePrefix}{index}State")!;
+            var propName = dbInventory.GetType().GetProperty($"Custom{typePrefix}{index}Name")!;
+
+            var inState = (bool)inventoryFields.GetType().GetProperty($"Custom{typePrefix}{index}State")!.GetValue(inventoryFields)!;
+            var inName = inventoryFields.GetType().GetProperty($"Custom{typePrefix}{index}Name")!.GetValue(inventoryFields)?.ToString();
+
+            // Validation: if checked, name cannot be empty or dummy "Field Name"
+            if (inState && (string.IsNullOrWhiteSpace(inName) || inName.Trim().Equals("Field Name", StringComparison.OrdinalIgnoreCase)))
+            {
+                inState = false;
+                inName = null;
+                TempData["ErrorMessage"] = "Some custom fields were disabled because their names were left empty or kept as 'Field Name'.";
+            }
+            
+            // Clean up name if unchecked
+            if (!inState)
+            {
+                inName = null;
+            }
+
+            propState.SetValue(dbInventory, inState);
+            propName.SetValue(dbInventory, inName?.Trim());
+        }
+
+        // Apply Fields mapping with strict validation
         for(int i=1; i<=3; i++)
         {
-            var stringState = (bool)inventoryFields.GetType().GetProperty("CustomString"+i+"State").GetValue(inventoryFields);
-            var stringName = inventoryFields.GetType().GetProperty("CustomString"+i+"Name").GetValue(inventoryFields)?.ToString();
-            dbInventory.GetType().GetProperty("CustomString"+i+"State").SetValue(dbInventory, stringState);
-            dbInventory.GetType().GetProperty("CustomString"+i+"Name").SetValue(dbInventory, stringName);
-
-            var textState = (bool)inventoryFields.GetType().GetProperty("CustomText"+i+"State").GetValue(inventoryFields);
-            var textName = inventoryFields.GetType().GetProperty("CustomText"+i+"Name").GetValue(inventoryFields)?.ToString();
-            dbInventory.GetType().GetProperty("CustomText"+i+"State").SetValue(dbInventory, textState);
-            dbInventory.GetType().GetProperty("CustomText"+i+"Name").SetValue(dbInventory, textName);
-
-            var intState = (bool)inventoryFields.GetType().GetProperty("CustomInt"+i+"State").GetValue(inventoryFields);
-            var intName = inventoryFields.GetType().GetProperty("CustomInt"+i+"Name").GetValue(inventoryFields)?.ToString();
-            dbInventory.GetType().GetProperty("CustomInt"+i+"State").SetValue(dbInventory, intState);
-            dbInventory.GetType().GetProperty("CustomInt"+i+"Name").SetValue(dbInventory, intName);
-
-            var boolState = (bool)inventoryFields.GetType().GetProperty("CustomBool"+i+"State").GetValue(inventoryFields);
-            var boolName = inventoryFields.GetType().GetProperty("CustomBool"+i+"Name").GetValue(inventoryFields)?.ToString();
-            dbInventory.GetType().GetProperty("CustomBool"+i+"State").SetValue(dbInventory, boolState);
-            dbInventory.GetType().GetProperty("CustomBool"+i+"Name").SetValue(dbInventory, boolName);
-
-            var linkState = (bool)inventoryFields.GetType().GetProperty("CustomLink"+i+"State").GetValue(inventoryFields);
-            var linkName = inventoryFields.GetType().GetProperty("CustomLink"+i+"Name").GetValue(inventoryFields)?.ToString();
-            dbInventory.GetType().GetProperty("CustomLink"+i+"State").SetValue(dbInventory, linkState);
-            dbInventory.GetType().GetProperty("CustomLink"+i+"Name").SetValue(dbInventory, linkName);
+            ApplyCustomField("String", i);
+            ApplyCustomField("Text", i);
+            ApplyCustomField("Int", i);
+            ApplyCustomField("Bool", i);
+            ApplyCustomField("Link", i);
         }
 
         // Set optimistic lock tracker
