@@ -95,35 +95,83 @@ using (var scope = app.Services.CreateScope())
         await dbContext.Database.ExecuteSqlRawAsync(
             "UPDATE \"Inventories\" SET \"Description\" = 'Restricted write access. Viewable by everyone.', \"Title\" = 'Bob''s Sci-Fi Collection' WHERE \"Description\" LIKE '%Private items not visible to guests%'");
         // Clean up any historical dummy value "Field Name" from custom fields metadata
+        // Retroactively configure Custom ID format for all inventories missing it, 
+        // and repair any existing items that got stuck with 32-char fallback GUIDs.
+        var allInvs = await dbContext.Inventories.Include(i => i.CustomIdParts).ToListAsync();
+        
         var prefixes = new[] { "String", "Text", "Int", "Bool", "Link" };
-        foreach (var p in prefixes)
+        foreach (var inv in allInvs)
         {
-            for (int i = 1; i <= 3; i++)
+            // 1. Clean up "Field Name" placeholders
+            foreach (var p in prefixes)
             {
-                await dbContext.Database.ExecuteSqlRawAsync($@"
-                    UPDATE ""Inventories"" SET ""Custom{p}{i}State"" = false, ""Custom{p}{i}Name"" = null 
-                    WHERE ""Custom{p}{i}Name"" = 'Field Name' OR (trim(COALESCE(""Custom{p}{i}Name"", '')) = '' AND ""Custom{p}{i}State"" = true);
-                ");
+                for (int i = 1; i <= 3; i++)
+                {
+                    var propState = inv.GetType().GetProperty($"Custom{p}{i}State");
+                    var propName = inv.GetType().GetProperty($"Custom{p}{i}Name");
+                    
+                    if (propState != null && propName != null)
+                    {
+                        var state = (bool)propState.GetValue(inv)!;
+                        var name = propName.GetValue(inv) as string;
+                        
+                        if (name == "Field Name" || (string.IsNullOrWhiteSpace(name) && state))
+                        {
+                            propState.SetValue(inv, false);
+                            propName.SetValue(inv, null);
+                        }
+                    }
+                }
+            }
+
+            // 2. Setup Default Custom ID format if missing
+            if (inv.CustomIdParts == null || !inv.CustomIdParts.Any())
+            {
+                inv.CustomIdParts ??= new List<InventoryApp.Models.CustomIdPart>();
+                if (inv.Title.Contains("Comic", StringComparison.OrdinalIgnoreCase))
+                {
+                    inv.CustomIdParts.Add(new InventoryApp.Models.CustomIdPart { Order = 0, PartType = "FixedText", TextValue = "COM-" });
+                    inv.CustomIdParts.Add(new InventoryApp.Models.CustomIdPart { Order = 1, PartType = "DateTime", DateFormat = "yyyy" });
+                    inv.CustomIdParts.Add(new InventoryApp.Models.CustomIdPart { Order = 2, PartType = "FixedText", TextValue = "-" });
+                    inv.CustomIdParts.Add(new InventoryApp.Models.CustomIdPart { Order = 3, PartType = "Sequence", Padding = 4 });
+                }
+                else
+                {
+                    inv.CustomIdParts.Add(new InventoryApp.Models.CustomIdPart { Order = 0, PartType = "FixedText", TextValue = "ITEM-" });
+                    inv.CustomIdParts.Add(new InventoryApp.Models.CustomIdPart { Order = 1, PartType = "Sequence", Padding = 4 });
+                }
+                if (inv.NextSequenceValue <= 0) inv.NextSequenceValue = 1;
+            }
+
+            var itemsToFix = await dbContext.Items.Where(it => it.InventoryId == inv.Id).ToListAsync();
+            foreach (var item in itemsToFix)
+            {
+                // If it's a raw GUID (32 characters, no hyphens)
+                if (item.CustomId != null && item.CustomId.Length == 32 && !item.CustomId.Contains("-"))
+                {
+                    var parts = inv.CustomIdParts.OrderBy(p => p.Order).ToList();
+                    var sb = new System.Text.StringBuilder();
+                    foreach (var part in parts)
+                    {
+                        switch (part.PartType)
+                        {
+                            case "FixedText": sb.Append(part.TextValue); break;
+                            case "DateTime": 
+                                string format = string.IsNullOrWhiteSpace(part.DateFormat) ? "yyyyMMdd" : part.DateFormat;
+                                sb.Append(DateTime.UtcNow.ToString(format)); 
+                                break;
+                            case "Sequence":
+                                int padding = part.Padding ?? 1;
+                                sb.Append(inv.NextSequenceValue.ToString().PadLeft(padding, '0'));
+                                inv.NextSequenceValue++;
+                                break;
+                        }
+                    }
+                    item.CustomId = sb.ToString();
+                }
             }
         }
-        
-        // Ensure the existing seeded demo inventory gets the Custom ID format
-        var demoInv = await dbContext.Inventories.Include(i => i.CustomIdParts).FirstOrDefaultAsync(i => i.Id == 1 || i.Title == "Alice's Comics Collection" || i.Title == "Alice's Sci-Fi Books");
-        if (demoInv != null && (!demoInv.CustomIdParts?.Any() ?? true))
-        {
-            demoInv.Title = "Alice's Comics Collection";
-            demoInv.CustomString1State = true; demoInv.CustomString1Name = "Name";
-            demoInv.CustomInt1State = true; demoInv.CustomInt1Name = "Year";
-            demoInv.CustomIdParts = new List<InventoryApp.Models.CustomIdPart>
-            {
-                new InventoryApp.Models.CustomIdPart { Order = 0, PartType = "FixedText", TextValue = "COM-" },
-                new InventoryApp.Models.CustomIdPart { Order = 1, PartType = "DateTime", DateFormat = "yyyy" },
-                new InventoryApp.Models.CustomIdPart { Order = 2, PartType = "FixedText", TextValue = "-" },
-                new InventoryApp.Models.CustomIdPart { Order = 3, PartType = "Sequence", Padding = 4 }
-            };
-            if (demoInv.NextSequenceValue <= 0) demoInv.NextSequenceValue = 1;
-            await dbContext.SaveChangesAsync();
-        }
+        await dbContext.SaveChangesAsync();
         
         var context = services.GetRequiredService<ApplicationDbContext>();
         

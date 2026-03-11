@@ -455,14 +455,14 @@
                                               <td>
                                                   <select name="parts[@i].PartType" class="form-select part-type-select" data-index="@i">
                                                       <option value="">-- @Localizer["Empty Slot"] --</option>
-                                                      <!option value="FixedText" @(part.PartType == "FixedText" ? "selected" : "")>Fixed Text</!option>
-                                                      <!option value="RandomHex20" @(part.PartType == "RandomHex20" ? "selected" : "")>Random (5 hex chars)</!option>
-                                                      <!option value="RandomHex32" @(part.PartType == "RandomHex32" ? "selected" : "")>Random (8 hex chars)</!option>
-                                                      <!option value="RandomDigits6" @(part.PartType == "RandomDigits6" ? "selected" : "")>Random (6 digits)</!option>
-                                                      <!option value="RandomDigits9" @(part.PartType == "RandomDigits9" ? "selected" : "")>Random (9 digits)</!option>
-                                                      <!option value="Sequence" @(part.PartType == "Sequence" ? "selected" : "")>Sequence Counter</!option>
-                                                      <!option value="DateTime" @(part.PartType == "DateTime" ? "selected" : "")>Date/Time</!option>
-                                                      <!option value="Guid" @(part.PartType == "Guid" ? "selected" : "")>GUID (N)</!option>
+                                                      <option value="FixedText" selected="@(part.PartType == "FixedText")">Fixed Text</option>
+                                                      <option value="RandomHex20" selected="@(part.PartType == "RandomHex20")">Random (5 hex chars)</option>
+                                                      <option value="RandomHex32" selected="@(part.PartType == "RandomHex32")">Random (8 hex chars)</option>
+                                                      <option value="RandomDigits6" selected="@(part.PartType == "RandomDigits6")">Random (6 digits)</option>
+                                                      <option value="RandomDigits9" selected="@(part.PartType == "RandomDigits9")">Random (9 digits)</option>
+                                                      <option value="Sequence" selected="@(part.PartType == "Sequence")">Sequence Counter</option>
+                                                      <option value="DateTime" selected="@(part.PartType == "DateTime")">Date/Time</option>
+                                                      <option value="Guid" selected="@(part.PartType == "Guid")">GUID (N)</option>
                                                   </select>
                                               </td>
                                               <td>
