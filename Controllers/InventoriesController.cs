@@ -195,6 +195,13 @@ public class InventoriesController : Controller
 
         if (ModelState.IsValid)
         {
+            // Apply a default beautiful Custom ID format instead of making users build from scratch
+            inventory.CustomIdParts = new List<CustomIdPart>
+            {
+                new CustomIdPart { Order = 0, PartType = "FixedText", TextValue = "ITEM-" },
+                new CustomIdPart { Order = 1, PartType = "Sequence", Padding = 4 }
+            };
+
             _context.Add(inventory);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
