@@ -1,92 +1,82 @@
-# Inventory Management App
+# InventoryApp – Inventory Management Web Application
 
-A full-stack ASP.NET Core MVC web application for creating and managing custom collections of items. Built with C#, Entity Framework Core, PostgreSQL, and Bootstrap 5.
+## Description
+A web application that allows users to create inventories, manage items, define custom fields, and analyze stored data with statistics. 
 
-## Features
-
-- **Authentication**: Email/Password registration and login via ASP.NET Core Identity.
-- **OAuth Ready**: Configured for Google/Facebook OAuth integration via environment variables.
-- **Custom Collections**: Users can create Inventories (collections) with custom fields (Integer, String, Text, Boolean, Link) to map their items.
-- **Custom IDs**: Inventory owners can design custom ID formats (incorporating Sequence, Date, GUID, and fixed text) for items within their collection.
-- **Access Control**: Inventories can be Public (read/write for all authenticated users) or Private (read-only for guests, write-access granted manually via an autocomplete UI).
-- **PostgreSQL Full-Text Search**: Robust GIN-indexed search across Item names, Custom Field strings, and Inventory metadata.
-- **Real-time Interaction**: Integrated SignalR for live discussion commenting on items.
-- **Likes**: Users can like items, tracking popularity.
-- **Admin Panel**: Dedicated minimal admin panel to promote/block/delete users, instantly invalidating their sessions.
-- **Responsive UI**: Bootstrap 5 with Dark/Light theme toggle capability.
+## Main Features
+- **User authentication**: Secure signup, login, and robust session management.
+- **Inventory creation and management**: Manage distinct lists with categorization and descriptions.
+- **Item CRUD**: Full life-cycle capabilities for individual items inside your inventories.
+- **Custom item fields**: Define up to 15 typed custom fields (strings, ints, booleans, markdown text, links) per inventory.
+- **Custom ID generation**: Construct custom sequence formats (e.g., `COM-YYYY-0001`) for your specific use cases.
+- **Comments and likes**: Engage with items via live commenting and a liking system.
+- **Inventory access control**: Granular permissions (read/write access) via an Access tab to collaborate with designated users.
+- **Statistics and analytics**: Real-time aggregated data visualizations on your inventory's numbers, frequent names, etc.
+- **Search functionality**: Full-text PostgreSQL vector search index spanning items, comments, and field values.
 
 ## Technology Stack
+- **ASP.NET Core (.NET 9.0)**
+- **Entity Framework Core**
+- **Razor Pages / MVC**
+- **PostgreSQL**
+- **Bootstrap 5 (Supports Dark/Light mode natively)**
+- **SignalR (Real-time updates)**
 
-- **Backend**: ASP.NET Core 8.0 MVC, C#
-- **Database**: PostgreSQL 16
-- **ORM**: Entity Framework Core
-- **Authentication**: ASP.NET Core Identity
-- **Real-time**: SignalR
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript, Bootstrap 5, DOMPurify (XSS prevention), Marked.js
+---
 
-## Pre-requisites
+## How to Run
 
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download)
-- [PostgreSQL](https://www.postgresql.org/download/) server running locally or externally.
+### Requirements
+- .NET SDK (version 9.0+)
+- PostgreSQL (or access to a Postgres connection string)
 
-## Setup & Local Development
+### Steps to Run Locally
+1. Clone the repository.
+2. Configure the database connection string in `appsettings.json` or as an environment variable (`DATABASE_URL`).
+3. Apply database migrations to scaffold the DB schema.
+4. Run the application.
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd <repository-directory>
-   ```
-
-2. **Database Configuration**
-   The application determines the connection string via the standard local `appsettings.json` or by parsing the Railway-standard `DATABASE_URL` environment variable.
-   
-   To use a local Postgres database, open `appsettings.json` and adjust the `DefaultConnection`:
-   ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Host=localhost;Port=5432;Database=InventoryAppDb;Username=postgres;Password=yourpassword"
-   }
-   ```
-   **Alternatively**, set the environment variable:
-   ```bash
-   # Windows PowerShell
-   $env:DATABASE_URL="postgres://postgres:yourpassword@localhost:5432/InventoryAppDb"
-   ```
-
-3. **Run the Application**
-   ```bash
-   dotnet run
-   ```
-   *Note: Entity Framework Migrations and Test Data Seeding are automatically applied upon startup.*
-
-## Test Credentials & Seeding
-
-The application automatically seeds 3 mock users and 2 mock inventories when it starts up containing a fresh database:
-
-- **User 1 (Owner)**: `alice@example.com` / `User@123!`
-- **User 2 (Collaborator)**: `bob@example.com` / `User@123!`
-- **User 3**: `charlie@example.com` / `User@123!`
-
-**Admin Account Seeding**:
-To test the Admin panel, you must elevate an account. Set the `ADMIN_EMAIL` environment variable *before* running the app, and the startup logic will grant that user the Admin role:
 ```bash
-# Windows PowerShell
-$env:ADMIN_EMAIL="alice@example.com"
+# Restore dependencies
+dotnet restore
+
+# Apply migrations and scaffold the database
+dotnet ef database update
+
+# Run the project
 dotnet run
 ```
-You can then access the Admin dashboard via the top navigation or navigate to `/Admin`.
 
-## Deployment Notes (Railway / Heroku)
+---
 
-This application is configured for immediate deployment to PaaS providers like Railway.
+## Testing Instructions
 
-**Required Environment Variables in Production:**
-- `DATABASE_URL` or `DATABASE_PUBLIC_URL` (PostgreSQL connection string provided by the host).
-- `ADMIN_EMAIL` (E.g. `your.email@example.com` - promotes your first login to Admin).
+**Test Flow**
+1. Register a new user account (or use one of the test accounts listed below).
+2. Create an inventory and specify a Category.
+3. Configure **Custom Fields** via the 'Fields' tab and set up a **Custom ID format**.
+4. Create new Items using your custom fields and observe the ID incrementing smoothly.
+5. Explore the **Statistics** tab to observe live aggregations based on numerical and string fields.
+6. Open an item and test the **Comments** and **Likes** functionality.
+7. Test the **Access Control** tab by granting "Collaborator" rights to a different test email and subsequently logging in as them to edit an item.
 
-*(Optional)* **OAuth Variables:**
-- `Authentication:Google:ClientId`
-- `Authentication:Google:ClientSecret`
-- `Authentication:Facebook:AppId`
-- `Authentication:Facebook:AppSecret`
+---
 
-The runtime will automatically execute `context.Database.Migrate()` on startup, meaning no manual schema creation is required in production. SignalR is configured without hardcoded paths, working natively behind standard reverse proxies.
+## Test Accounts
+
+The following test accounts are pre-seeded in the database for demonstration and testing purposes.
+
+**Owner account**
+- **Email:** alice@example.com
+- **Password:** User@123!
+- *Use for: Exploring primary inventory creation and managing access.*
+
+**Collaborator**
+- **Email:** bob@example.com
+- **Password:** User@123!
+- *Use for: Testing targeted read/write restrictions defined by Alice's access configurations.*
+
+**Standard user**
+- **Email:** charlie@example.com
+- **Password:** User@123!
+- *Use for: Testing guest/public access on inventories he was not explicitly invited to edit.*

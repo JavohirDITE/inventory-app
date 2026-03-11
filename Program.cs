@@ -76,6 +76,16 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.DefaultRequestCulture = new RequestCulture("en");
     options.SupportedCultures = supportedCultures;
     options.SupportedUICultures = supportedCultures;
+    
+    // Prevent the browser's language (Accept-Language header) from overriding the default English.
+    // The language will only change if the user explicitly switches it (which sets a Cookie).
+    var languageHeaderProvider = options.RequestCultureProviders
+        .OfType<Microsoft.AspNetCore.Localization.AcceptLanguageHeaderRequestCultureProvider>()
+        .FirstOrDefault();
+    if (languageHeaderProvider != null)
+    {
+        options.RequestCultureProviders.Remove(languageHeaderProvider);
+    }
 });
 
 var app = builder.Build();
