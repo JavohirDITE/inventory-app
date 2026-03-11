@@ -181,6 +181,16 @@ using (var scope = app.Services.CreateScope())
                 }
             }
         }
+        
+        // Fix seeded account usernames to allow login
+        foreach(var testUser in await dbContext.Users.ToListAsync())
+        {
+            if (testUser.UserName == "Alice" || testUser.UserName == "Bob" || testUser.UserName == "Charlie" || !testUser.UserName!.Contains('@'))
+            {
+                testUser.UserName = testUser.Email;
+                testUser.NormalizedUserName = testUser.NormalizedEmail;
+            }
+        }
         await dbContext.SaveChangesAsync();
         
         var context = services.GetRequiredService<ApplicationDbContext>();
