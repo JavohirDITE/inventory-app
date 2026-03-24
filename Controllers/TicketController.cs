@@ -73,12 +73,7 @@ public class TicketController : Controller
                     // or just show the real error. Let's show the real error so it can be configured.
                     ModelState.AddModelError("", "OneDrive API is not configured. Please set ONEDRIVE_TENANT_ID, ONEDRIVE_CLIENT_ID, ONEDRIVE_CLIENT_SECRET, ONEDRIVE_USER_ID.");
                 }
-                else
-                {
-                    ModelState.AddModelError("", "Failed to upload to OneDrive. Check console or credentials.");
-                }
-                return View(model);
-            }
+                    ModelState.AddModelError("", "Failed to connect to OneDrive API. Please check configuration.");
         }
         catch (Exception ex)
         {
@@ -112,7 +107,11 @@ public class TicketController : Controller
         });
 
         var tokenResponse = await client.SendAsync(tokenRequest);
-        if (!tokenResponse.IsSuccessStatusCode) return false;
+        if (!tokenResponse.IsSuccessStatusCode)
+        {
+            string err = await tokenResponse.Content.ReadAsStringAsync();
+            throw new Exception($"Azure AD Token Error: {tokenResponse.StatusCode} - {err}");
+        }
 
         var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(tokenJson);
@@ -129,6 +128,12 @@ public class TicketController : Controller
         uploadRequest.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
         var uploadResponse = await client.SendAsync(uploadRequest);
-        return uploadResponse.IsSuccessStatusCode;
+        if (!uploadResponse.IsSuccessStatusCode)
+        {
+            string err = await uploadResponse.Content.ReadAsStringAsync();
+            throw new Exception($"Graph API Upload Error: {uploadResponse.StatusCode} - {err}");
+        }
+        
+        return true;
     }
 }
