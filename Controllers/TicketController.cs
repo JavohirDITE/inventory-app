@@ -73,7 +73,12 @@ public class TicketController : Controller
                     // or just show the real error. Let's show the real error so it can be configured.
                     ModelState.AddModelError("", "OneDrive API is not configured. Please set ONEDRIVE_TENANT_ID, ONEDRIVE_CLIENT_ID, ONEDRIVE_CLIENT_SECRET, ONEDRIVE_USER_ID.");
                 }
+                else
+                {
                     ModelState.AddModelError("", "Failed to connect to OneDrive API. Please check configuration.");
+                }
+                return View(model);
+            }
         }
         catch (Exception ex)
         {
