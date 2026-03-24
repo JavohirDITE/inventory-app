@@ -61,7 +61,7 @@ builder.Services.AddControllersWithViews()
     .AddViewLocalization(LanguageViewLocationExpanderFormat.Suffix);
 
 builder.Services.AddSignalR();
-
+builder.Services.AddHttpClient();
 // Configure forwarded headers for reverse proxies (e.g. Railway)
 builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
 {

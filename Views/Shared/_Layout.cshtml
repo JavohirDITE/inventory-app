@@ -31,8 +31,15 @@
     </div>
 
     <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - InventoryApp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        <div class="container d-flex justify-content-between">
+            <div>
+                &copy; 2026 - InventoryApp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </div>
+            <div>
+                <a asp-controller="Ticket" asp-action="Create" class="text-decoration-none text-muted">
+                    <i class="bi bi-life-preserver"></i> @Localizer["Support Ticket"]
+                </a>
+            </div>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
